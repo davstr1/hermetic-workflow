@@ -108,14 +108,16 @@ your-project/
 │   ├── tasks.md              # Task list (markdown checkboxes)
 │   └── state/                # Inter-agent communication (gitignored)
 ├── orchestrator.sh           # Entry point (thin wrapper)
-└── CLAUDE.md                 # Project instructions + principles (written by Architect)
+└── CLAUDE.md                 # Project description + principles (auto-loaded into all agents)
 ```
 
 ## Customization
 
-### Principles
+### CLAUDE.md and Per-Agent Context
 
-Project principles live in the `## Principles` section at the bottom of `CLAUDE.md`, written by the Architect during setup. These are the rules your code must follow — specific, enforceable statements like "NEVER use inline styles" or "All API responses must include error codes". Since they're in CLAUDE.md, every agent sees them automatically.
+`CLAUDE.md` contains only universal project knowledge (description, tech stack, principles) — it's auto-loaded into every agent's context. The Architect writes this during setup.
+
+Each agent `.md` file has a `## Project Context` section at the bottom. The Architect populates these with agent-specific guidance: the coder gets source file conventions and libraries, the test-maker gets test framework patterns, the reviewer gets review priorities, and the planner gets decomposition hints. This keeps each agent's context focused on what it needs.
 
 ### Lint Rules
 

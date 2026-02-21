@@ -42,13 +42,13 @@ if [[ "$skip_setup" == false ]]; then
   log "  SETUP PHASE — Architect Agent (Interactive)"
   log "═══════════════════════════════════════════════════"
   echo ""
-  log "The Architect will help you set up project principles,"
-  log "configure lint rules, and create the task list."
+  log "The Architect will set up CLAUDE.md, per-agent context,"
+  log "lint rules, and the task list."
   echo ""
 
   claude --agent architect
 
-  ok "Setup complete. Principles and tasks are ready."
+  ok "Setup complete. Project context and tasks are ready."
   echo ""
 else
   log "Skipping setup (--skip-setup)."

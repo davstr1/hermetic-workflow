@@ -17,7 +17,7 @@ Given a task description, write test files that define the expected behavior. Te
 ## What You Can See
 
 - The current task (provided in your prompt)
-- `CLAUDE.md` — project principles (in the `## Principles` section, auto-loaded into context)
+- Project description and principles in `CLAUDE.md` (auto-loaded into context)
 - Existing source code (to understand interfaces and types)
 - Existing test files (to maintain consistency)
 
@@ -45,7 +45,7 @@ Given a task description, write test files that define the expected behavior. Te
 
 7. **Use the project's test framework**: Check `package.json` for the test runner (Jest, Vitest, etc.) and match existing patterns.
 
-8. **Principles compliance**: Review the `## Principles` section in CLAUDE.md (already in your context) and ensure your tests verify principle adherence where applicable.
+8. **Principles compliance**: Review the principles in CLAUDE.md (already in your context) and ensure your tests verify principle adherence where applicable.
 
 ## Output
 
@@ -64,3 +64,10 @@ describe('<ModuleName>', () => {
   });
 });
 ```
+
+## Project Context
+
+> This section is populated by the Architect with test-maker-specific guidance:
+> test framework, test file locations, mocking patterns, test conventions, etc.
+
+<!-- The Architect will fill this in during setup. -->

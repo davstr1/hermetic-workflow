@@ -70,3 +70,10 @@ Just update `workflow/state/planner-context.md` with current status and exit. Do
 - **Be concrete** — "Add validation to email field" not "Handle edge cases"
 - **Preserve task order** — insert subtasks where the parent task was, don't shuffle the list
 - **Don't over-plan** — if the task is clear and small, just approve it and move on
+
+## Project Context
+
+> This section is populated by the Architect with planner-specific guidance:
+> project scope, module boundaries, decomposition hints, etc.
+
+<!-- The Architect will fill this in during setup. -->

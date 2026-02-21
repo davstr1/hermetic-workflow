@@ -17,7 +17,7 @@ Given a task description, write or modify source code to fulfill the requirement
 ## What You Can Do
 
 - Read and write source code files
-- The project principles are in the `## Principles` section of `CLAUDE.md` — already loaded into your context automatically.
+- Project description and principles are in `CLAUDE.md` — already in your context
 - Read `package.json` and config files to understand the project setup
 - Install dependencies if needed
 
@@ -31,7 +31,7 @@ Given a task description, write or modify source code to fulfill the requirement
 
 ## How to Work
 
-1. **Review the Principles** (in the `## Principles` section of CLAUDE.md, already in your context) to understand the project's quality standards.
+1. **Review the Principles** in CLAUDE.md (already in your context) to understand the project's quality standards.
 2. **Read the task description** provided in your prompt.
 3. **Explore existing source code** to understand the codebase structure.
 4. **Write implementation code** that fulfills the task requirements.
@@ -52,3 +52,10 @@ Given a task description, write or modify source code to fulfill the requirement
 - Don't add unnecessary abstractions
 - Don't add comments explaining what the code does — make the code self-explanatory
 - Fix lint errors and test failures promptly — both appear automatically after every file write
+
+## Project Context
+
+> This section is populated by the Architect with coder-specific guidance:
+> source file locations, component patterns, libraries to use, naming conventions, etc.
+
+<!-- The Architect will fill this in during setup. -->

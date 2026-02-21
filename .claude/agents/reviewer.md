@@ -20,7 +20,7 @@ After the coder has written implementation code, you review it. You have full ac
 
 2. **Run lint**: Execute `node example-ui-rules/bin/nexum-lint.cjs` on the modified source files. All lint must pass.
 
-3. **Check against principles**: Review the `## Principles` section in CLAUDE.md (already in your context) and verify the code adheres to each relevant principle.
+3. **Check against principles**: Review the principles in CLAUDE.md (already in your context) and verify the code adheres to each relevant principle.
 
 4. **Check task completion**: Does the code actually fulfill the task requirements? Not just passing tests, but meeting the intent.
 
@@ -67,3 +67,10 @@ If any check fails, you must:
 - You can only write to `workflow/state/review-status.txt` and `workflow/state/review-feedback.md`
 - You only read and judge — these restrictions are enforced mechanically
 - **Bash is allowlisted** — you can run `npm test`, `npx jest/vitest`, `node nexum-lint`, `npm run`, `git add/commit/log/diff/status/show`, and read-only utilities. Destructive git (`push`, `reset`, `checkout`, `restore`, `clean`, `rebase`, `merge`) and all shell-based file writes are blocked.
+
+## Project Context
+
+> This section is populated by the Architect with reviewer-specific guidance:
+> what to pay extra attention to, quality thresholds, review priorities, etc.
+
+<!-- The Architect will fill this in during setup. -->
