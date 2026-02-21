@@ -8,8 +8,8 @@
 #   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
 #   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
 #
-# Unrestricted agents: architect, orchestrator (and unknown/empty — for manual use)
-# Restricted agents: planner, test-maker, coder, reviewer
+# Unrestricted agents: architect (and unknown/empty — for manual use)
+# Restricted agents: orchestrator, planner, test-maker, coder, reviewer
 #
 # Exit codes:
 #   0 = allow (tool proceeds)
@@ -23,9 +23,9 @@ if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agen
   CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
 fi
 
-# Unrestricted agents pass through immediately
+# Fully unrestricted agents pass through immediately
 case "$CURRENT_AGENT" in
-  architect|orchestrator|"") exit 0 ;;
+  architect|"") exit 0 ;;
 esac
 
 # ── Read tool input ──
@@ -81,6 +81,10 @@ check_read() {
   local path="$1"
 
   case "$CURRENT_AGENT" in
+    orchestrator)
+      # Orchestrator cannot read: source code internals are not its job
+      # but it needs visibility into workflow state, tasks, agent defs, and git
+      ;;
     coder)
       # Coder cannot read: tests, lint rules, agent defs, review state
       if matches_any "$path" \
@@ -126,6 +130,14 @@ check_write() {
   local path="$1"
 
   case "$CURRENT_AGENT" in
+    orchestrator)
+      # Orchestrator can only write workflow state files and tasks — no source, no tests
+      if matches_any "$path" \
+        'workflow/tasks.md' 'workflow/state/*'; then
+        return 0
+      fi
+      return 1
+      ;;
     coder)
       # Coder can write source code only — no tests, no rules, no state, no config
       if matches_any "$path" \
@@ -175,6 +187,9 @@ check_glob() {
   local pattern="$1"
 
   case "$CURRENT_AGENT" in
+    orchestrator)
+      # Orchestrator can glob anything — needs full visibility to coordinate
+      ;;
     coder)
       for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
         if [[ "$pattern" == *"$forbidden_dir"* ]]; then
@@ -262,6 +277,20 @@ check_single_command() {
   fi
 
   case "$CURRENT_AGENT" in
+    orchestrator)
+      # Git read-only
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      return 1
+      ;;
     planner)
       # Git read-only commands
       [[ "$cmd" == git\ log* ]] && return 0

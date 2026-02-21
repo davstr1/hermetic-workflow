@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# orchestrator.sh — The Ralph Wiggum Loop (thin wrapper)
+# orchestrator.sh — Launches the hermetic TDD workflow.
 #
-# Runs the hermetic TDD workflow using native Claude Code agents:
+# Runs two phases:
 #   1. Architect agent (interactive setup, runs once)
-#   2. Orchestrator agent (processes all tasks in a loop)
+#   2. Orchestrator agent (processes all tasks via Ralph Wiggum loop)
+#
+# Prerequisites:
+#   Install the Ralph Wiggum plugin in Claude Code:
+#     /plugin marketplace add anthropics/claude-code
+#     /plugin install ralph-wiggum@anthropics-claude-code
 #
 # Usage:
 #   ./orchestrator.sh              # Full run (setup + loop)
 #   ./orchestrator.sh --skip-setup # Skip architect setup, go straight to loop
-#   ./orchestrator.sh --loop-only  # Alias for --skip-setup
 
 set -euo pipefail
 
@@ -56,10 +60,14 @@ fi
 
 # Phase 2: The Loop (Orchestrator agent — processes all tasks)
 log "═══════════════════════════════════════════════════"
-log "  LOOP PHASE — Orchestrator Agent"
+log "  LOOP PHASE — Orchestrator Agent (Ralph Wiggum)"
 log "═══════════════════════════════════════════════════"
 echo ""
+log "The orchestrator will process all tasks from workflow/tasks.md."
+log "It runs inside a Ralph Wiggum loop until all tasks are complete."
+log "You will be consulted if escalation is needed."
+echo ""
 
-claude --agent orchestrator -p "Read workflow/tasks.md and process all unchecked tasks through the pipeline: Planner → Test Maker → Coder → Reviewer. Start now."
+claude --agent orchestrator
 
 ok "Workflow complete."
