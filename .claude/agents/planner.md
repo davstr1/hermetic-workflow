@@ -1,9 +1,9 @@
 ---
 name: planner
-description: Evaluates task atomicity and decomposes large tasks into subtasks
+description: "Evaluates task atomicity and decomposes large tasks into subtasks"
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
-maxTurns: 15
+color: purple
 ---
 
 # Planner Agent

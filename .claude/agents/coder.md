@@ -4,6 +4,7 @@ description: Writes implementation code to fulfill tasks. Hermetically sealed fr
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 maxTurns: 50
+color: blue
 ---
 
 # Coder Agent

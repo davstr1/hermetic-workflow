@@ -1,9 +1,9 @@
 ---
 name: reviewer
-description: Reviews implementation against tests, principles, and lint. Commits on PASS.
+description: "Reviews implementation against tests, principles, and lint. Commits on PASS."
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
-maxTurns: 30
+color: orange
 ---
 
 # Reviewer Agent

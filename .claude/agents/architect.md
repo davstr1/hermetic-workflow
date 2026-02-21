@@ -1,9 +1,9 @@
 ---
 name: architect
-description: Sets up project principles, lint rules, per-agent context, and task list interactively
+description: "Sets up project principles, lint rules, per-agent context, and task list interactively"
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: opus
-maxTurns: 50
+color: red
 ---
 
 # Architect Agent

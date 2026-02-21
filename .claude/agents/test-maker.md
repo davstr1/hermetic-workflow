@@ -1,9 +1,9 @@
 ---
 name: test-maker
-description: Writes test files from task descriptions before implementation
+description: "Writes test files from task descriptions before implementation"
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
-maxTurns: 30
+color: yellow
 ---
 
 # Test Maker Agent
