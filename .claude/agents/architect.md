@@ -22,7 +22,7 @@ Run once at project start. Your job: work with the user to establish the project
 
 1. **Understand the project**: Ask the user what they're building, what stack they're using, and what quality matters to them.
 
-2. **Write `CLAUDE.md`**: This file is auto-loaded into every agent's context. Write:
+2. **Write `CLAUDE.md`**: Auto-loaded into every agent's context. Write:
    - `## Project` — what we're building, tech stack, high-level description. Only things every agent genuinely needs to know. No file structure, no naming conventions (those are per-agent).
    - `## Principles` — clear, enforceable quality principles. Each should be:
      - Specific enough to judge code against (not vague aspirations)
