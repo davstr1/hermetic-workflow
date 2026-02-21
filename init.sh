@@ -78,13 +78,14 @@ copy_always "$SCRIPT_DIR/.claude/hooks/enforce-lint.sh" "$TARGET/.claude/hooks/e
 copy_always "$SCRIPT_DIR/.claude/settings.json"         "$TARGET/.claude/settings.json"
 copy_always "$SCRIPT_DIR/orchestrator.sh"               "$TARGET/orchestrator.sh"
 
-# Agent prompts — always overwrite (these define agent behavior)
-log "Copying agent prompts..."
-copy_always "$SCRIPT_DIR/prompts/architect.md"   "$TARGET/prompts/architect.md"
-copy_always "$SCRIPT_DIR/prompts/planner.md"     "$TARGET/prompts/planner.md"
-copy_always "$SCRIPT_DIR/prompts/test-maker.md"  "$TARGET/prompts/test-maker.md"
-copy_always "$SCRIPT_DIR/prompts/coder.md"       "$TARGET/prompts/coder.md"
-copy_always "$SCRIPT_DIR/prompts/reviewer.md"    "$TARGET/prompts/reviewer.md"
+# Agent definitions — always overwrite (these define agent behavior)
+log "Copying agent definitions..."
+copy_always "$SCRIPT_DIR/.claude/agents/orchestrator.md" "$TARGET/.claude/agents/orchestrator.md"
+copy_always "$SCRIPT_DIR/.claude/agents/architect.md"    "$TARGET/.claude/agents/architect.md"
+copy_always "$SCRIPT_DIR/.claude/agents/planner.md"      "$TARGET/.claude/agents/planner.md"
+copy_always "$SCRIPT_DIR/.claude/agents/test-maker.md"   "$TARGET/.claude/agents/test-maker.md"
+copy_always "$SCRIPT_DIR/.claude/agents/coder.md"        "$TARGET/.claude/agents/coder.md"
+copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"     "$TARGET/.claude/agents/reviewer.md"
 
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."

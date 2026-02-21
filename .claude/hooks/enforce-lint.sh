@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # enforce-lint.sh — PostToolUse hook for lint + test enforcement.
 #
-# When HERMETIC_AGENT=coder, after every Write/Edit of a source file:
+# When the coder agent is active, after every Write/Edit of a source file:
 #   1. Runs nexum-lint.cjs on the written file (lint feedback)
 #   2. Runs the test suite (test feedback)
+#
+# Identifies the current agent via:
+#   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
+#   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
 #
 # The coder sees error messages but never rule definitions or test source code.
 #
@@ -12,8 +16,14 @@
 
 set -euo pipefail
 
+# Identify current agent: env var first, then state file fallback
+CURRENT_AGENT="${HERMETIC_AGENT:-}"
+if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" ]]; then
+  CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
+fi
+
 # Only enforce for the coder agent
-if [[ "${HERMETIC_AGENT:-}" != "coder" ]]; then
+if [[ "$CURRENT_AGENT" != "coder" ]]; then
   exit 0
 fi
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # guard-files.sh — PreToolUse hook for hermetic agent isolation.
 #
-# Reads HERMETIC_AGENT env var (set by orchestrator.sh).
+# Identifies the current agent via:
+#   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
+#   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
+#
 # If agent is "coder", blocks access to forbidden paths.
 # Non-coder agents pass through immediately (zero overhead).
 #
@@ -11,8 +14,14 @@
 
 set -euo pipefail
 
+# Identify current agent: env var first, then state file fallback
+CURRENT_AGENT="${HERMETIC_AGENT:-}"
+if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" ]]; then
+  CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
+fi
+
 # Only restrict the coder agent
-if [[ "${HERMETIC_AGENT:-}" != "coder" ]]; then
+if [[ "$CURRENT_AGENT" != "coder" ]]; then
   exit 0
 fi
 
@@ -58,9 +67,9 @@ check_path() {
     '.eslintrc*'
     'stylelint.config.*'
 
-    # Agent prompts
-    'prompts/*'
-    'prompts'
+    # Agent definitions
+    '.claude/agents/*'
+    '.claude/agents'
 
     # Project principles — READABLE by coder (gives direction without revealing enforcement)
     # 'principles.md'  ← intentionally NOT blocked
@@ -137,7 +146,7 @@ extract_and_check() {
       pattern=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null)
       if [[ -n "$pattern" ]]; then
         # Check if the glob pattern targets forbidden directories
-        for forbidden_dir in "prompts" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
+        for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
           if [[ "$pattern" == *"$forbidden_dir"* ]]; then
             echo "BLOCKED: Coder agent cannot glob '$pattern'. This path is outside your scope." >&2
             blocked=1
@@ -177,7 +186,7 @@ extract_and_check() {
       command=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
       if [[ -n "$command" ]]; then
         # Check if command references forbidden paths
-        for forbidden in "prompts/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
+        for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
           if [[ "$command" == *"$forbidden"* ]]; then
             echo "BLOCKED: Coder agent cannot access '$forbidden' via shell commands." >&2
             blocked=1
