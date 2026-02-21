@@ -64,4 +64,5 @@ If any check fails, you must:
 - Modify source code (that's the coder's job)
 - Modify tests (that's the test maker's or architect's job)
 - Modify principles or lint rules (that's the architect's job)
-- You only read and judge
+- You can only write to `workflow/state/review-status.txt` and `workflow/state/review-feedback.md`
+- You only read and judge — these restrictions are enforced mechanically

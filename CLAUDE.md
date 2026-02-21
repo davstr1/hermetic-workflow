@@ -26,17 +26,22 @@ claude --agent orchestrator    # Task loop only
 | **Coder** | Writes implementation code | Task, principles, source code (hermetically sealed from rules/tests) |
 | **Reviewer** | Reviews code, commits on PASS, feedback on FAIL | Everything |
 
-### Hermetic Isolation
+### Hermetic Isolation (All Agents)
 
-The **Coder agent is hermetically sealed** — it cannot read:
-- Test files (`*.test.*`, `*.spec.*`)
-- Lint rules (`example-ui-rules/eslint-rules/`, etc.)
-- Agent definitions (`.claude/agents/`)
-- Review feedback files
+Every agent is mechanically restricted to its role. This is enforced by `.claude/hooks/guard-files.sh`, not by prompt instructions.
 
-It CAN read `principles.md` (high-level direction) but never the enforcement mechanism.
+| Agent | Can READ | Can WRITE |
+|-------|----------|-----------|
+| **Orchestrator** | Everything | Everything |
+| **Architect** | Everything | Everything |
+| **Planner** | Tasks, state, source, tests, git log | `workflow/tasks.md`, `workflow/state/planner-context.md` only |
+| **Test Maker** | Source code, tests, principles | Test files (`*.test.*`, `*.spec.*`) and `package.json` only |
+| **Coder** | Source code, `principles.md` | Source code only (no tests, rules, state, config) |
+| **Reviewer** | Everything | `workflow/state/review-status.txt`, `workflow/state/review-feedback.md` only |
 
-This is enforced by Claude Code hooks in `.claude/hooks/guard-files.sh`, not by prompt instructions. The coder gets lint errors and test results automatically after every file write (via `enforce-lint.sh`) but never sees the rules or test source code.
+No agent (except architect/orchestrator) can read `.claude/agents/` or lint rule source code. The coder additionally cannot read tests or review feedback.
+
+The coder gets lint errors and test results automatically after every file write (via `enforce-lint.sh`) but never sees the rules or test source code.
 
 ### Agent Identification
 

@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # guard-files.sh — PreToolUse hook for hermetic agent isolation.
 #
-# Identifies the current agent via:
+# Every agent has an explicit permission scope. If a tool call falls outside
+# that scope, the hook blocks it (exit 2) and shows a message to the agent.
+#
+# Agent identification:
 #   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
 #   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
 #
-# If agent is "coder", blocks access to forbidden paths.
-# Non-coder agents pass through immediately (zero overhead).
+# Unrestricted agents: architect, orchestrator (and unknown/empty — for manual use)
+# Restricted agents: planner, test-maker, coder, reviewer
 #
 # Exit codes:
 #   0 = allow (tool proceeds)
@@ -14,104 +17,250 @@
 
 set -euo pipefail
 
-# Identify current agent: env var first, then state file fallback
+# ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
 if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" ]]; then
   CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
 fi
 
-# Only restrict the coder agent
-if [[ "$CURRENT_AGENT" != "coder" ]]; then
-  exit 0
-fi
+# Unrestricted agents pass through immediately
+case "$CURRENT_AGENT" in
+  architect|orchestrator|"") exit 0 ;;
+esac
 
-# Read the tool input from stdin (JSON)
+# ── Read tool input ──
 INPUT=$(cat)
-
 TOOL_NAME="${TOOL_NAME:-}"
 
-# Extract file paths / patterns / commands from the tool input depending on tool type
-check_path() {
-  local path_to_check="$1"
+# ── Path helpers ──
 
-  # Normalize: strip leading ./ if present
-  path_to_check="${path_to_check#./}"
+# Make a path relative to project dir
+rel_path() {
+  local p="$1"
+  p="${p#"${CLAUDE_PROJECT_DIR}"/}"
+  p="${p#./}"
+  echo "$p"
+}
 
-  # Forbidden patterns for the coder agent
-  local forbidden_patterns=(
-    # Test files
-    '*.test.*'
-    '*.spec.*'
-    '__tests__/*'
-    '__tests__'
-    'tests/*'
-    'tests'
-    '*.test.ts'
-    '*.test.tsx'
-    '*.test.js'
-    '*.test.jsx'
-    '*.spec.ts'
-    '*.spec.tsx'
-    '*.spec.js'
-    '*.spec.jsx'
+# Check if a path matches any pattern in a list
+# Usage: matches_any "path" "pattern1" "pattern2" ...
+matches_any() {
+  local path="$1"; shift
+  local base
+  base=$(basename "$path")
 
-    # Lint rules and config
-    'example-ui-rules/eslint-rules/*'
-    'example-ui-rules/eslint-rules'
-    'example-ui-rules/stylelint-rules/*'
-    'example-ui-rules/stylelint-rules'
-    'example-ui-rules/bin/*'
-    'example-ui-rules/bin'
-    'example-ui-rules/.eslintrc*'
-    'eslint-config.*'
-    '.eslintrc*'
-    'stylelint.config.*'
-
-    # Agent definitions
-    '.claude/agents/*'
-    '.claude/agents'
-
-    # Project principles — READABLE by coder (gives direction without revealing enforcement)
-    # 'principles.md'  ← intentionally NOT blocked
-
-    # Review state (defense in depth — orchestrator injects feedback into prompt)
-    'workflow/state/review-feedback.md'
-    'workflow/state/review-status.txt'
-    'workflow/state/escalation-context.md'
-  )
-
-  for pattern in "${forbidden_patterns[@]}"; do
+  for pattern in "$@"; do
     case "$pattern" in
-      # Patterns ending with /* match anything under that directory
+      # Directory wildcard: "dir/*" matches anything under dir
       */\*)
-        local dir_prefix="${pattern%/*}"
-        if [[ "$path_to_check" == "$dir_prefix"/* || "$path_to_check" == "$dir_prefix" ]]; then
-          return 1
+        local dir="${pattern%/*}"
+        if [[ "$path" == "$dir"/* || "$path" == "$dir" ]]; then
+          return 0
         fi
         ;;
-      # Glob patterns with * in the filename part
-      \**.*)
-        # e.g. *.test.* — check if basename matches
-        local basename
-        basename=$(basename "$path_to_check")
-        # Use bash pattern matching
-        case "$basename" in
-          *.test.*|*.spec.*) return 1 ;;
+      # Basename glob: "*.test.*" matches the filename part
+      \*.*)
+        case "$base" in
+          $pattern) return 0 ;;
         esac
         ;;
-      # Exact matches or simple globs
+      # Exact match
       *)
-        if [[ "$path_to_check" == $pattern ]]; then
-          return 1
+        if [[ "$path" == $pattern ]]; then
+          return 0
         fi
         ;;
     esac
   done
+  return 1
+}
 
+# ── Per-agent READ restrictions ──
+# Returns 0 if read is allowed, 1 if blocked
+check_read() {
+  local path="$1"
+
+  case "$CURRENT_AGENT" in
+    coder)
+      # Coder cannot read: tests, lint rules, agent defs, review state
+      if matches_any "$path" \
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
+        'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
+        'example-ui-rules/bin/*' 'example-ui-rules/.eslintrc*' \
+        'eslint-config.*' '.eslintrc*' 'stylelint.config.*' \
+        '.claude/agents/*' \
+        'workflow/state/review-feedback.md' 'workflow/state/review-status.txt' \
+        'workflow/state/escalation-context.md'; then
+        return 1
+      fi
+      ;;
+    planner)
+      # Planner cannot read: source code is fine, but lint rules and agent defs are off-limits
+      if matches_any "$path" \
+        '.claude/agents/*' \
+        'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
+        'example-ui-rules/bin/*'; then
+        return 1
+      fi
+      ;;
+    test-maker)
+      # Test-maker cannot read: lint rules, agent defs
+      if matches_any "$path" \
+        '.claude/agents/*' \
+        'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
+        'example-ui-rules/bin/*'; then
+        return 1
+      fi
+      ;;
+    reviewer)
+      # Reviewer can read everything — needs full visibility to judge
+      ;;
+  esac
   return 0
 }
 
-# Extract relevant paths from the tool input JSON based on tool name
+# ── Per-agent WRITE restrictions ──
+# Uses an allowlist: only paths matching allowed patterns can be written.
+# Returns 0 if write is allowed, 1 if blocked.
+check_write() {
+  local path="$1"
+
+  case "$CURRENT_AGENT" in
+    coder)
+      # Coder can write source code only — no tests, no rules, no state, no config
+      if matches_any "$path" \
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
+        'example-ui-rules/*' 'eslint-config.*' '.eslintrc*' 'stylelint.config.*' \
+        '.claude/agents/*' '.claude/hooks/*' '.claude/settings.json' \
+        'workflow/*' 'principles.md' \
+        'orchestrator.sh' 'init.sh' 'setup-remote.sh' \
+        'CLAUDE.md' 'README.md'; then
+        return 1
+      fi
+      ;;
+    planner)
+      # Planner can only write: tasks.md and its own context file
+      if matches_any "$path" \
+        'workflow/tasks.md' 'workflow/state/planner-context.md'; then
+        return 0
+      fi
+      return 1
+      ;;
+    test-maker)
+      # Test-maker can only write test files and package.json (for adding test deps)
+      if matches_any "$path" \
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        return 0
+      fi
+      # Allow package.json for installing test framework deps
+      if [[ "$path" == "package.json" ]]; then
+        return 0
+      fi
+      return 1
+      ;;
+    reviewer)
+      # Reviewer can only write review state files
+      if matches_any "$path" \
+        'workflow/state/review-status.txt' 'workflow/state/review-feedback.md'; then
+        return 0
+      fi
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+# ── Per-agent GLOB restrictions ──
+check_glob() {
+  local pattern="$1"
+
+  case "$CURRENT_AGENT" in
+    coder)
+      for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
+        if [[ "$pattern" == *"$forbidden_dir"* ]]; then
+          return 1
+        fi
+      done
+      if [[ "$pattern" == *".test."* || "$pattern" == *".spec."* ]]; then
+        return 1
+      fi
+      ;;
+    planner)
+      for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
+        if [[ "$pattern" == *"$forbidden_dir"* ]]; then
+          return 1
+        fi
+      done
+      ;;
+    test-maker)
+      for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
+        if [[ "$pattern" == *"$forbidden_dir"* ]]; then
+          return 1
+        fi
+      done
+      ;;
+    reviewer)
+      # Reviewer can glob anything (needs full visibility)
+      ;;
+  esac
+  return 0
+}
+
+# ── Per-agent BASH restrictions ──
+check_bash() {
+  local command="$1"
+
+  case "$CURRENT_AGENT" in
+    coder)
+      # Block access to forbidden paths via shell
+      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
+        if [[ "$command" == *"$forbidden"* ]]; then
+          return 1
+        fi
+      done
+      # Block reading test files via shell (but allow running test commands)
+      if [[ "$command" == *".test."* || "$command" == *".spec."* || "$command" == *"__tests__"* ]]; then
+        if [[ "$command" != *"jest"* && "$command" != *"vitest"* && "$command" != *"npm test"* && "$command" != *"npm run test"* && "$command" != *"npx test"* ]]; then
+          return 1
+        fi
+      fi
+      ;;
+    planner)
+      # Planner: allow git log, reading tasks — block writing source code or running tests
+      # Block access to agent defs and lint rules
+      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
+        if [[ "$command" == *"$forbidden"* ]]; then
+          return 1
+        fi
+      done
+      ;;
+    test-maker)
+      # Test-maker: allow npm install (test deps), running tests — block lint rules/agents
+      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
+        if [[ "$command" == *"$forbidden"* ]]; then
+          return 1
+        fi
+      done
+      ;;
+    reviewer)
+      # Reviewer: allow running tests, lint, git — block writing source code
+      # Git commit is allowed (reviewer commits on PASS)
+      # Block destructive git operations except commit
+      if [[ "$command" == *"git push"* || "$command" == *"git reset"* || "$command" == *"git checkout"* || "$command" == *"git restore"* ]]; then
+        # Allow git checkout for switching files to view, block destructive patterns
+        if [[ "$command" == *"git reset --hard"* || "$command" == *"git push"* ]]; then
+          return 1
+        fi
+      fi
+      # Block writing/editing source files via shell (cat >, tee, sed -i, etc.)
+      # But allow read operations (cat, less, head) and running lint/tests
+      ;;
+  esac
+  return 0
+}
+
+# ── Main dispatch ──
+
 extract_and_check() {
   local blocked=0
 
@@ -120,10 +269,9 @@ extract_and_check() {
       local file_path
       file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
-        # Make relative to project dir
-        file_path="${file_path#"${CLAUDE_PROJECT_DIR}"/}"
-        if ! check_path "$file_path"; then
-          echo "BLOCKED: Coder agent cannot read '$file_path'. This path is outside your scope." >&2
+        file_path=$(rel_path "$file_path")
+        if ! check_read "$file_path"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot read '$file_path'. Outside your scope." >&2
           blocked=1
         fi
       fi
@@ -133,9 +281,9 @@ extract_and_check() {
       local file_path
       file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
-        file_path="${file_path#"${CLAUDE_PROJECT_DIR}"/}"
-        if ! check_path "$file_path"; then
-          echo "BLOCKED: Coder agent cannot write to '$file_path'. This path is outside your scope." >&2
+        file_path=$(rel_path "$file_path")
+        if ! check_write "$file_path"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot write to '$file_path'. Outside your scope." >&2
           blocked=1
         fi
       fi
@@ -145,17 +293,8 @@ extract_and_check() {
       local pattern
       pattern=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null)
       if [[ -n "$pattern" ]]; then
-        # Check if the glob pattern targets forbidden directories
-        for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
-          if [[ "$pattern" == *"$forbidden_dir"* ]]; then
-            echo "BLOCKED: Coder agent cannot glob '$pattern'. This path is outside your scope." >&2
-            blocked=1
-            break
-          fi
-        done
-        # Check for test file patterns
-        if [[ "$pattern" == *".test."* || "$pattern" == *".spec."* ]]; then
-          echo "BLOCKED: Coder agent cannot glob for test files." >&2
+        if ! check_glob "$pattern"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot glob '$pattern'. Outside your scope." >&2
           blocked=1
         fi
       fi
@@ -165,17 +304,18 @@ extract_and_check() {
       local path
       path=$(echo "$INPUT" | jq -r '.path // empty' 2>/dev/null)
       if [[ -n "$path" ]]; then
-        path="${path#"${CLAUDE_PROJECT_DIR}"/}"
-        if ! check_path "$path"; then
-          echo "BLOCKED: Coder agent cannot search in '$path'. This path is outside your scope." >&2
+        path=$(rel_path "$path")
+        if ! check_read "$path"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot search in '$path'. Outside your scope." >&2
           blocked=1
         fi
       fi
       local glob
       glob=$(echo "$INPUT" | jq -r '.glob // empty' 2>/dev/null)
       if [[ -n "$glob" ]]; then
-        if [[ "$glob" == *".test."* || "$glob" == *".spec."* ]]; then
-          echo "BLOCKED: Coder agent cannot search test files." >&2
+        # Reuse glob check logic
+        if ! check_glob "$glob"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot search with glob '$glob'. Outside your scope." >&2
           blocked=1
         fi
       fi
@@ -185,21 +325,9 @@ extract_and_check() {
       local command
       command=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
       if [[ -n "$command" ]]; then
-        # Check if command references forbidden paths
-        for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
-          if [[ "$command" == *"$forbidden"* ]]; then
-            echo "BLOCKED: Coder agent cannot access '$forbidden' via shell commands." >&2
-            blocked=1
-            break
-          fi
-        done
-        # Block reading test files via shell
-        if [[ "$command" == *".test."* || "$command" == *".spec."* || "$command" == *"__tests__"* ]]; then
-          # Allow running tests (npx jest, npm test, etc.) but block reading test file contents
-          if [[ "$command" != *"jest"* && "$command" != *"vitest"* && "$command" != *"npm test"* && "$command" != *"npm run test"* && "$command" != *"npx test"* ]]; then
-            echo "BLOCKED: Coder agent cannot access test files via shell." >&2
-            blocked=1
-          fi
+        if ! check_bash "$command"; then
+          echo "BLOCKED: ${CURRENT_AGENT} agent cannot run this command. Outside your scope." >&2
+          blocked=1
         fi
       fi
       ;;

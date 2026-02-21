@@ -1,16 +1,20 @@
 # Hermetic Workflow
 
-A TDD workflow for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) where the coding agent **cannot see the tests or lint rules it must satisfy**. Enforcement is mechanical, not prompt-based.
+A TDD workflow for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) where **every agent is mechanically restricted to its role**. No agent can cheat — enforcement is by hooks, not prompts.
 
 ## Why
 
-LLM coding agents cheat. Give them test files and lint rules, and they'll pattern-match to satisfy them rather than write code that genuinely fulfills the requirements. Hermetic isolation fixes this:
+LLM coding agents cheat. Give them test files and lint rules, and they'll pattern-match to satisfy them rather than write code that genuinely fulfills the requirements. But it's not just the coder — a reviewer that can edit source code isn't really reviewing, and a test-maker that can modify implementation isn't really doing TDD.
 
-- The **coder agent** sees the task description and project principles, but never the tests or rules
-- Tests and lint run automatically after every file write — the coder gets error messages, not source code
-- This is enforced by [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks), not by instructions the agent can ignore
+Hermetic isolation fixes this for every agent:
 
-The result: code that satisfies requirements because it understands them, not because it read the answer key.
+- The **coder** sees task descriptions and principles, but never the tests or rules
+- The **test-maker** can only write test files — it can't touch source code
+- The **reviewer** can read everything but can only write its verdict files — it can't "fix" code
+- The **planner** can only write task files — it can't write code or tests
+- All of this is enforced by [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks), not by instructions agents can ignore
+
+The result: agents that do their actual job because they literally can't do anything else.
 
 ## How It Works
 
@@ -25,18 +29,16 @@ Architect (setup) → Orchestrator runs for each task:
                              STUCK → Escalation (interactive)
 ```
 
-| Agent | What it does | What it can see |
-|-------|-------------|-----------------|
-| **Architect** | Sets up principles, lint rules, task list | Everything |
-| **Orchestrator** | Spawns agents, manages the loop, handles escalation | Everything |
-| **Planner** | Checks task atomicity, decomposes if needed | Tasks, git log, state |
-| **Test Maker** | Writes tests before implementation | Task, principles, existing code/tests |
-| **Coder** | Writes implementation code | Task, principles, source code only |
-| **Reviewer** | Runs tests + lint, commits on PASS, feedback on FAIL | Everything |
+| Agent | What it does | Can read | Can write |
+|-------|-------------|----------|-----------|
+| **Architect** | Sets up principles, lint rules, task list | Everything | Everything |
+| **Orchestrator** | Spawns agents, manages the loop | Everything | Everything |
+| **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only |
+| **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only |
+| **Coder** | Writes implementation code | Source code, principles | Source code only |
+| **Reviewer** | Runs tests + lint, commits on PASS | Everything | `review-status.txt` + `review-feedback.md` only |
 
-The **Coder** is hermetically sealed. It cannot read test files, lint rules, agent definitions, or review feedback files. This is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths.
-
-A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
+Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
 
 ## Quick Start
 

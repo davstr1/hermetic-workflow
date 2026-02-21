@@ -26,6 +26,7 @@ Given a task description, write test files that define the expected behavior. Te
 - Write implementation code — only test files
 - Modify `principles.md` or any lint rules
 - Modify existing source code
+- These restrictions are enforced mechanically — you can only write to test files
 
 ## Rules
 

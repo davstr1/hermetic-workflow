@@ -63,7 +63,7 @@ Just update `workflow/state/planner-context.md` with current status and exit. Do
 
 ## Rules
 
-- **Never write code or tests** — you only plan
+- **Never write code or tests** — you only plan. You can only write to `workflow/tasks.md` and `workflow/state/planner-context.md`. This is enforced mechanically.
 - **Never modify principles.md or lint rules** — that's the Architect's job
 - **Keep decomposition minimal** — 2-5 subtasks max. If it needs more, the original task is a project, not a task
 - **Be concrete** — "Add validation to email field" not "Handle edge cases"
