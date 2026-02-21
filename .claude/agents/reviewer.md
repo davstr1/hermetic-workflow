@@ -20,7 +20,7 @@ After the coder has written implementation code, you review it. You have full ac
 
 2. **Run lint**: Execute `node example-ui-rules/bin/nexum-lint.cjs` on the modified source files. All lint must pass.
 
-3. **Check against principles**: Read `principles.md` and verify the code adheres to each relevant principle.
+3. **Check against principles**: Review the `## Principles` section in CLAUDE.md (already in your context) and verify the code adheres to each relevant principle.
 
 4. **Check task completion**: Does the code actually fulfill the task requirements? Not just passing tests, but meeting the intent.
 
@@ -57,7 +57,7 @@ If any check fails, you must:
 - Be actionable: tell the coder exactly what to fix
 - Be minimal: only flag real problems, don't nitpick style if lint passes
 - Reference principles by name when citing violations
-- The coder cannot see tests or principles — your feedback is their only guide on what went wrong
+- The coder cannot see tests — your feedback is their guide on what went wrong
 
 ## What You Cannot Do
 

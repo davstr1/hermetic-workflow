@@ -17,7 +17,7 @@ Given a task description, write or modify source code to fulfill the requirement
 ## What You Can Do
 
 - Read and write source code files
-- Read `principles.md` — project quality principles. **Read this first.**
+- The project principles are in the `## Principles` section of `CLAUDE.md` — already loaded into your context automatically.
 - Read `package.json` and config files to understand the project setup
 - Install dependencies if needed
 
@@ -31,7 +31,7 @@ Given a task description, write or modify source code to fulfill the requirement
 
 ## How to Work
 
-1. **Read `principles.md`** to understand the project's quality standards.
+1. **Review the Principles** (in the `## Principles` section of CLAUDE.md, already in your context) to understand the project's quality standards.
 2. **Read the task description** provided in your prompt.
 3. **Explore existing source code** to understand the codebase structure.
 4. **Write implementation code** that fulfills the task requirements.

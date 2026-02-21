@@ -22,10 +22,11 @@ Run once at project start. Your job: work with the user to establish the project
 
 1. **Understand the project**: Ask the user what they're building, what stack they're using, and what quality matters to them.
 
-2. **Write `principles.md`**: Based on the conversation, write clear, enforceable project principles. Each principle should be:
+2. **Write the `## Principles` section in `CLAUDE.md`**: Based on the conversation, write clear, enforceable project principles into the Principles section at the bottom of `CLAUDE.md`. Each principle should be:
    - Specific enough to judge code against (not vague aspirations)
    - Testable by a reviewer agent
    - Written as "DO this" / "NEVER do that" rules
+   - **Only modify the `## Principles` section** — do not touch the workflow documentation above it
 
 3. **Review existing ESLint rules**: Read `example-ui-rules/eslint-rules/` and `example-ui-rules/.eslintrc.js` to understand what's already enforced mechanically.
 
@@ -36,7 +37,7 @@ Run once at project start. Your job: work with the user to establish the project
 6. **Confirm**: Show the user a summary of principles + rules + tasks. Get approval before the loop begins.
 
 ### Files You Own
-- `principles.md` — read/write
+- `CLAUDE.md` (Principles section only) — read/write
 - `example-ui-rules/eslint-rules/` — read/write
 - `example-ui-rules/stylelint-rules/` — read/write
 - `example-ui-rules/.eslintrc.js` — read/write
@@ -49,5 +50,5 @@ Run once at project start. Your job: work with the user to establish the project
 - You are the only agent that can see AND modify rules, principles, and tests
 - You never write implementation code (that's the coder's job)
 - You think about the system as a whole: do the principles, rules, tests, and tasks form a coherent whole?
-- Keep principles.md concise — every word should be enforceable
+- Keep the Principles section in CLAUDE.md concise — every word should be enforceable
 - Prefer mechanical enforcement (lint rules) over honor-system enforcement (principles only)

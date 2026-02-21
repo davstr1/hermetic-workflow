@@ -36,7 +36,7 @@ Every agent is mechanically restricted to its role. This is enforced by `.claude
 | **Architect** | Everything | Everything | Unrestricted |
 | **Planner** | Tasks, state, source, tests, git log | `workflow/tasks.md`, `workflow/state/planner-context.md` only | `git log/diff/status/show`, read-only utils (`ls`, `cat`, `head`, `tail`, `wc`) |
 | **Test Maker** | Source code, tests, principles | Test files (`*.test.*`, `*.spec.*`) and `package.json` only | `npm install/test`, `npx jest/vitest`, `node`, git read-only, read-only utils |
-| **Coder** | Source code, `principles.md` | Source code only (no tests, rules, state, config) | `npm install/run/test`, `npx`, `node`, `tsc`, `mkdir`, git read-only, read-only utils |
+| **Coder** | Source code, CLAUDE.md (principles) | Source code only (no tests, rules, state, config) | `npm install/run/test`, `npx`, `node`, `tsc`, `mkdir`, git read-only, read-only utils |
 | **Reviewer** | Everything | `workflow/state/review-status.txt`, `workflow/state/review-feedback.md` only | `npm test`, `npx jest/vitest`, `node nexum-lint`, `npm run`, `git add/commit` + git read-only, read-only utils |
 
 No agent (except architect/orchestrator) can read `.claude/agents/` or lint rule source code. The coder additionally cannot read tests or review feedback.
@@ -71,7 +71,6 @@ Architect (setup) → Orchestrator spawns for each task:
 - `.claude/settings.json` — Hooks configuration
 - `.claude/hooks/guard-files.sh` — PreToolUse: hermetic file access control
 - `.claude/hooks/enforce-lint.sh` — PostToolUse: lint enforcement after writes
-- `principles.md` — Project quality principles (written by Architect)
 - `workflow/tasks.md` — Task list (markdown checkboxes)
 - `workflow/state/` — Inter-agent communication files
 - `workflow/state/current-agent.txt` — Current agent identifier (read by hooks)
@@ -87,3 +86,12 @@ Edit `workflow/tasks.md` and add tasks as:
 ```
 
 Or let the Architect agent create them during setup.
+
+## Principles
+
+> This section is written by the Architect agent during setup.
+> It is auto-loaded into every agent's context via CLAUDE.md.
+
+<!-- The Architect will replace this with project-specific principles. -->
+<!-- Each principle should be specific, enforceable, and testable. -->
+<!-- Examples: "NEVER use inline styles", "All API responses must include error codes" -->

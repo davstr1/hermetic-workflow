@@ -132,7 +132,7 @@ check_write() {
         '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
         'example-ui-rules/*' 'eslint-config.*' '.eslintrc*' 'stylelint.config.*' \
         '.claude/agents/*' '.claude/hooks/*' '.claude/settings.json' \
-        'workflow/*' 'principles.md' \
+        'workflow/*' \
         'orchestrator.sh' 'init.sh' 'setup-remote.sh' \
         'CLAUDE.md' 'README.md'; then
         return 1

@@ -89,7 +89,6 @@ copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"     "$TARGET/.claude/agents
 
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
-copy_if_missing "$SCRIPT_DIR/principles.md"      "$TARGET/principles.md"
 copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"   "$TARGET/workflow/tasks.md"
 copy_if_missing "$SCRIPT_DIR/CLAUDE.md"           "$TARGET/CLAUDE.md"
 
@@ -134,6 +133,6 @@ log "Next steps:"
 echo "  cd $TARGET"
 echo "  ./orchestrator.sh          # Run setup + task loop"
 echo ""
-log "Or skip setup if you already have principles + tasks:"
+log "Or skip setup if you already have tasks defined:"
 echo "  ./orchestrator.sh --skip-setup"
 echo ""

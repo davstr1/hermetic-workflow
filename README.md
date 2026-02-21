@@ -61,7 +61,7 @@ This copies the workflow files into your project. No git remote is added.
 # Full run: interactive setup, then process all tasks
 ./orchestrator.sh
 
-# Skip setup if you already have principles + tasks
+# Skip setup if you already have tasks defined
 ./orchestrator.sh --skip-setup
 ```
 
@@ -108,15 +108,14 @@ your-project/
 │   ├── tasks.md              # Task list (markdown checkboxes)
 │   └── state/                # Inter-agent communication (gitignored)
 ├── orchestrator.sh           # Entry point (thin wrapper)
-├── principles.md             # Project quality principles (written by Architect)
-└── CLAUDE.md                 # Project instructions for Claude Code
+└── CLAUDE.md                 # Project instructions + principles (written by Architect)
 ```
 
 ## Customization
 
 ### Principles
 
-`principles.md` is written by the Architect during setup. These are the rules your code must follow — specific, enforceable statements like "NEVER use inline styles" or "All API responses must include error codes". The coder can read this file.
+Project principles live in the `## Principles` section at the bottom of `CLAUDE.md`, written by the Architect during setup. These are the rules your code must follow — specific, enforceable statements like "NEVER use inline styles" or "All API responses must include error codes". Since they're in CLAUDE.md, every agent sees them automatically.
 
 ### Lint Rules
 
