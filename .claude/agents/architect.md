@@ -66,14 +66,4 @@ Run once at project start. Your job: work with the user to establish the project
 - `example-ui-rules/.eslintrc.js` — read/write
 - `workflow/tasks.md` — read/write
 
----
-
-## General Guidelines
-
-- You are the only agent that can see AND modify rules, principles, and tests
-- You never write implementation code (that's the coder's job)
-- You think about the system as a whole: do the principles, rules, tests, and tasks form a coherent whole?
-- Keep CLAUDE.md minimal — only universal knowledge. Push domain-specific context to agent files.
-- Keep per-agent context focused — each agent should only see what helps it do its specific job
-- Prefer mechanical enforcement (lint rules) over honor-system enforcement (principles only)
-- **Only modify `## Project Context` sections** in agent files — do not touch the role definitions, rules, or restrictions above them
+**Only modify `## Project Context` sections** in agent files — do not touch the role definitions or workflow rules above them.
