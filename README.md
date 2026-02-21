@@ -29,16 +29,16 @@ Architect (setup) → Orchestrator runs for each task:
                              STUCK → Escalation (interactive)
 ```
 
-| Agent | What it does | Can read | Can write |
-|-------|-------------|----------|-----------|
-| **Architect** | Sets up principles, lint rules, task list | Everything | Everything |
-| **Orchestrator** | Spawns agents, manages the loop | Everything | Everything |
-| **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only |
-| **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only |
-| **Coder** | Writes implementation code | Source code, principles | Source code only |
-| **Reviewer** | Runs tests + lint, commits on PASS | Everything | `review-status.txt` + `review-feedback.md` only |
+| Agent | What it does | Can read | Can write | Bash allowlist |
+|-------|-------------|----------|-----------|----------------|
+| **Architect** | Sets up principles, lint rules, task list | Everything | Everything | Unrestricted |
+| **Orchestrator** | Spawns agents, manages the loop | Everything | Everything | Unrestricted |
+| **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only | git read-only, read utils |
+| **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only | npm install/test, node, git read-only |
+| **Coder** | Writes implementation code | Source code, principles | Source code only | npm, npx, node, tsc, mkdir, git read-only |
+| **Reviewer** | Runs tests + lint, commits on PASS | Everything | `review-status.txt` + `review-feedback.md` only | npm test, nexum-lint, git add/commit |
 
-Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
+Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. Bash commands are **allowlisted per agent** — shell-based file writes, subshells, and eval are blocked for all restricted agents, and compound commands are split and validated individually. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
 
 ## Quick Start
 

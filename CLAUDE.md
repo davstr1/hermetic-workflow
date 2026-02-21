@@ -30,16 +30,18 @@ claude --agent orchestrator    # Task loop only
 
 Every agent is mechanically restricted to its role. This is enforced by `.claude/hooks/guard-files.sh`, not by prompt instructions.
 
-| Agent | Can READ | Can WRITE |
-|-------|----------|-----------|
-| **Orchestrator** | Everything | Everything |
-| **Architect** | Everything | Everything |
-| **Planner** | Tasks, state, source, tests, git log | `workflow/tasks.md`, `workflow/state/planner-context.md` only |
-| **Test Maker** | Source code, tests, principles | Test files (`*.test.*`, `*.spec.*`) and `package.json` only |
-| **Coder** | Source code, `principles.md` | Source code only (no tests, rules, state, config) |
-| **Reviewer** | Everything | `workflow/state/review-status.txt`, `workflow/state/review-feedback.md` only |
+| Agent | Can READ | Can WRITE | Bash Allowlist |
+|-------|----------|-----------|----------------|
+| **Orchestrator** | Everything | Everything | Unrestricted |
+| **Architect** | Everything | Everything | Unrestricted |
+| **Planner** | Tasks, state, source, tests, git log | `workflow/tasks.md`, `workflow/state/planner-context.md` only | `git log/diff/status/show`, read-only utils (`ls`, `cat`, `head`, `tail`, `wc`) |
+| **Test Maker** | Source code, tests, principles | Test files (`*.test.*`, `*.spec.*`) and `package.json` only | `npm install/test`, `npx jest/vitest`, `node`, git read-only, read-only utils |
+| **Coder** | Source code, `principles.md` | Source code only (no tests, rules, state, config) | `npm install/run/test`, `npx`, `node`, `tsc`, `mkdir`, git read-only, read-only utils |
+| **Reviewer** | Everything | `workflow/state/review-status.txt`, `workflow/state/review-feedback.md` only | `npm test`, `npx jest/vitest`, `node nexum-lint`, `npm run`, `git add/commit` + git read-only, read-only utils |
 
 No agent (except architect/orchestrator) can read `.claude/agents/` or lint rule source code. The coder additionally cannot read tests or review feedback.
+
+Bash commands are **allowlisted per agent** — each agent can only run commands matching its allowed patterns. Shell-based file writes (`>`, `>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`), subshells (`$()`, backticks), and `eval`/`bash -c` are blocked for all restricted agents. Compound commands (`&&`, `||`, `;`, `|`) are split and each segment is checked independently.
 
 The coder gets lint errors and test results automatically after every file write (via `enforce-lint.sh`) but never sees the rules or test source code.
 

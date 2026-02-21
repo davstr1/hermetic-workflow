@@ -27,6 +27,7 @@ Given a task description, write test files that define the expected behavior. Te
 - Modify `principles.md` or any lint rules
 - Modify existing source code
 - These restrictions are enforced mechanically — you can only write to test files
+- **Bash is allowlisted** — you can run `npm install/test`, `npx jest/vitest`, `node`, `git log/diff/status/show`, and read-only utilities. All other commands (including shell writes like `echo >`, `sed -i`, `cp`, `rm`) are blocked.
 
 ## Rules
 

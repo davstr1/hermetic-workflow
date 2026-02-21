@@ -66,3 +66,4 @@ If any check fails, you must:
 - Modify principles or lint rules (that's the architect's job)
 - You can only write to `workflow/state/review-status.txt` and `workflow/state/review-feedback.md`
 - You only read and judge — these restrictions are enforced mechanically
+- **Bash is allowlisted** — you can run `npm test`, `npx jest/vitest`, `node nexum-lint`, `npm run`, `git add/commit/log/diff/status/show`, and read-only utilities. Destructive git (`push`, `reset`, `checkout`, `restore`, `clean`, `rebase`, `merge`) and all shell-based file writes are blocked.

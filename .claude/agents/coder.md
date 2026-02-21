@@ -27,6 +27,7 @@ Given a task description, write or modify source code to fulfill the requirement
 - You cannot read or modify lint rules or configuration
 - You cannot read agent prompts
 - These restrictions are enforced mechanically — don't try to work around them
+- **Bash is allowlisted** — you can run `npm install/run/test`, `npx`, `node`, `tsc`, `mkdir`, `git log/diff/status/show`, and read-only utilities. All shell-based file writes (`echo >`, `sed -i`, `cp`, `mv`, `rm`) and references to forbidden paths are blocked.
 
 ## How to Work
 

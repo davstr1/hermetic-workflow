@@ -206,57 +206,207 @@ check_glob() {
   return 0
 }
 
-# ── Per-agent BASH restrictions ──
-check_bash() {
-  local command="$1"
+# ── Per-agent BASH restrictions (allowlist-based) ──
+
+# Universal: detect shell-based file writes.
+# Returns 0 if the command writes to files, 1 otherwise.
+shell_writes_to_file() {
+  local cmd="$1"
+  # Output redirection (> >>). Match common patterns:
+  #   cmd > file, cmd >file, cmd 2> file, cmd &> file, cmd 1> file
+  [[ "$cmd" =~ [[:space:]]1?\>[[:space:]] ]] && return 0
+  [[ "$cmd" =~ [[:space:]]2?\>[[:space:]] ]] && return 0
+  [[ "$cmd" =~ [[:space:]]\&\>[[:space:]] ]] && return 0
+  [[ "$cmd" == *">>"* ]] && return 0
+  # Pipe to tee
+  [[ "$cmd" =~ [[:space:]]tee[[:space:]] ]] && return 0
+  # In-place sed
+  [[ "$cmd" =~ [[:space:]]sed[[:space:]]+-i ]] && return 0
+  [[ "$cmd" == sed\ -i* ]] && return 0
+  # File manipulation
+  [[ "$cmd" =~ [[:space:]]cp[[:space:]] ]] && return 0
+  [[ "$cmd" == cp\ * ]] && return 0
+  [[ "$cmd" =~ [[:space:]]mv[[:space:]] ]] && return 0
+  [[ "$cmd" == mv\ * ]] && return 0
+  [[ "$cmd" =~ [[:space:]]rm[[:space:]] ]] && return 0
+  [[ "$cmd" == rm\ * ]] && return 0
+  # Inline scripting that can write files
+  [[ "$cmd" == *"node -e"* ]] && return 0
+  [[ "$cmd" == *"node --eval"* ]] && return 0
+  [[ "$cmd" == *"python -c"* ]] && return 0
+  [[ "$cmd" == *"python3 -c"* ]] && return 0
+  [[ "$cmd" == *"ruby -e"* ]] && return 0
+  [[ "$cmd" == *"perl -e"* ]] && return 0
+  # curl/wget download to file
+  [[ "$cmd" == *"curl "* && "$cmd" == *" -o"* ]] && return 0
+  [[ "$cmd" == *"curl "* && "$cmd" == *" -O"* ]] && return 0
+  [[ "$cmd" == *"wget "* ]] && return 0
+  # dd
+  [[ "$cmd" == dd\ * || "$cmd" == *" dd "* ]] && return 0
+  # install command
+  [[ "$cmd" == install\ * || "$cmd" == *" install "* ]] && [[ "$cmd" != *"npm install"* && "$cmd" != *"npm i "* ]] && return 0
+  return 1
+}
+
+# Check a single command (no chaining) against per-agent allowlist.
+# Returns 0 if allowed, 1 if blocked.
+check_single_command() {
+  local cmd="$1"
+  # Trim leading/trailing whitespace
+  cmd=$(echo "$cmd" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+  [[ -z "$cmd" ]] && return 0  # empty segment is fine
+
+  # Universal write guard for all restricted agents
+  if shell_writes_to_file "$cmd"; then
+    return 1
+  fi
 
   case "$CURRENT_AGENT" in
-    coder)
-      # Block access to forbidden paths via shell
-      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
-        if [[ "$command" == *"$forbidden"* ]]; then
-          return 1
-        fi
-      done
-      # Block reading test files via shell (but allow running test commands)
-      if [[ "$command" == *".test."* || "$command" == *".spec."* || "$command" == *"__tests__"* ]]; then
-        if [[ "$command" != *"jest"* && "$command" != *"vitest"* && "$command" != *"npm test"* && "$command" != *"npm run test"* && "$command" != *"npx test"* ]]; then
-          return 1
-        fi
-      fi
-      ;;
     planner)
-      # Planner: allow git log, reading tasks — block writing source code or running tests
-      # Block access to agent defs and lint rules
-      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
-        if [[ "$command" == *"$forbidden"* ]]; then
-          return 1
-        fi
-      done
+      # Git read-only commands
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      # Everything else is blocked
+      return 1
       ;;
     test-maker)
-      # Test-maker: allow npm install (test deps), running tests — block lint rules/agents
-      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
-        if [[ "$command" == *"$forbidden"* ]]; then
+      # npm install / test commands
+      [[ "$cmd" == npm\ install* ]] && return 0
+      [[ "$cmd" == npm\ i\ * ]] && return 0
+      [[ "$cmd" == npm\ test* ]] && return 0
+      [[ "$cmd" == npm\ run\ test* ]] && return 0
+      [[ "$cmd" == npx\ jest* ]] && return 0
+      [[ "$cmd" == npx\ vitest* ]] && return 0
+      # Node (verify test setup)
+      [[ "$cmd" == node\ * ]] && return 0
+      # Git read-only
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      return 1
+      ;;
+    coder)
+      # Forbidden path check first — coder can't reference these in ANY command
+      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
+        if [[ "$cmd" == *"$forbidden"* ]]; then
           return 1
         fi
       done
+      # Block test file references in any command
+      if [[ "$cmd" == *".test."* || "$cmd" == *".spec."* || "$cmd" == *"__tests__"* ]]; then
+        return 1
+      fi
+      # npm / build / run commands
+      [[ "$cmd" == npm\ install* ]] && return 0
+      [[ "$cmd" == npm\ i\ * ]] && return 0
+      [[ "$cmd" == npm\ run\ * ]] && return 0
+      [[ "$cmd" == npm\ test* ]] && return 0
+      [[ "$cmd" == npx\ * ]] && return 0
+      # Node / TypeScript
+      [[ "$cmd" == node\ * ]] && return 0
+      [[ "$cmd" == tsc* ]] && return 0
+      # Directory creation
+      [[ "$cmd" == mkdir\ * ]] && return 0
+      # Git read-only
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      return 1
       ;;
     reviewer)
-      # Reviewer: allow running tests, lint, git — block writing source code
-      # Git commit is allowed (reviewer commits on PASS)
-      # Block destructive git operations except commit
-      if [[ "$command" == *"git push"* || "$command" == *"git reset"* || "$command" == *"git checkout"* || "$command" == *"git restore"* ]]; then
-        # Allow git checkout for switching files to view, block destructive patterns
-        if [[ "$command" == *"git reset --hard"* || "$command" == *"git push"* ]]; then
-          return 1
-        fi
-      fi
-      # Block writing/editing source files via shell (cat >, tee, sed -i, etc.)
-      # But allow read operations (cat, less, head) and running lint/tests
+      # Test / lint commands
+      [[ "$cmd" == npm\ test* ]] && return 0
+      [[ "$cmd" == npm\ run\ test* ]] && return 0
+      [[ "$cmd" == npx\ jest* ]] && return 0
+      [[ "$cmd" == npx\ vitest* ]] && return 0
+      [[ "$cmd" == node\ example-ui-rules/bin/nexum-lint* ]] && return 0
+      [[ "$cmd" == node\ */nexum-lint* ]] && return 0
+      # npm run (for lint/build scripts)
+      [[ "$cmd" == npm\ run\ * ]] && return 0
+      # Git commit workflow (but block destructive operations)
+      [[ "$cmd" == git\ add* ]] && return 0
+      [[ "$cmd" == git\ commit* ]] && return 0
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Block destructive git
+      [[ "$cmd" == git\ push* ]] && return 1
+      [[ "$cmd" == git\ reset* ]] && return 1
+      [[ "$cmd" == git\ checkout* ]] && return 1
+      [[ "$cmd" == git\ restore* ]] && return 1
+      [[ "$cmd" == git\ clean* ]] && return 1
+      [[ "$cmd" == git\ rebase* ]] && return 1
+      [[ "$cmd" == git\ merge* ]] && return 1
+      [[ "$cmd" == git\ branch\ -[dD]* ]] && return 1
+      # Node (for running lint/test scripts)
+      [[ "$cmd" == node\ * ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      return 1
       ;;
   esac
   return 0
+}
+
+# Split a compound command on &&, ||, ;, | and check each segment.
+# Returns 0 if all segments pass, 1 if any segment fails.
+check_bash() {
+  local full_cmd="$1"
+
+  # Block subshell/eval-based bypass attempts for all restricted agents
+  if [[ "$full_cmd" == *'$('* || "$full_cmd" == *'`'* || "$full_cmd" == *"eval "* || "$full_cmd" == *"bash -c"* || "$full_cmd" == *"sh -c"* || "$full_cmd" == *"zsh -c"* ]]; then
+    # Allow $() in safe contexts: git commit -m "$(cat <<'EOF'...)" (heredoc message)
+    if [[ "$CURRENT_AGENT" == "reviewer" && "$full_cmd" == git\ commit* && "$full_cmd" == *'$(cat <<'* ]]; then
+      return 0  # safe: reviewer git commit with heredoc message, skip splitting
+    else
+      return 1
+    fi
+  fi
+
+  # Split on && || ; | — replace delimiters with newlines, then iterate.
+  # Use a simple approach: replace unquoted delimiters.
+  # (This won't handle all quoting edge cases but covers practical usage)
+  local segments
+  segments=$(echo "$full_cmd" | sed 's/&&/\n/g; s/||/\n/g; s/;/\n/g' | sed 's/|/\n/g')
+
+  local failed=0
+  while IFS= read -r segment; do
+    segment=$(echo "$segment" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+    [[ -z "$segment" ]] && continue
+    if ! check_single_command "$segment"; then
+      failed=1
+      break
+    fi
+  done <<< "$segments"
+
+  return $failed
 }
 
 # ── Main dispatch ──
