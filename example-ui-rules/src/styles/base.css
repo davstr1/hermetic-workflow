@@ -1,0 +1,72 @@
+/* Nexum UI — Base Styles */
+/* Import this once in your app: import '@nexum/ui/styles' */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base layer ─────────────────────────────────────────────────────────── */
+@layer base {
+  /* Default to dark mode */
+  :root {
+    color-scheme: dark;
+    /* Text color on solid accent backgrounds. Override via applyPreset() or CSS. */
+    --accent-text: #ffffff;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface-primary text-text-primary font-sans;
+    min-height: 100dvh;
+  }
+
+  /* Focus ring — accent color */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface-primary;
+  }
+
+  /* Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.surface-tertiary') transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    @apply bg-surface-tertiary rounded-pill;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-accent/30 text-text-primary;
+  }
+}
+
+/* ─── Component layer ────────────────────────────────────────────────────── */
+@layer components {
+  /* Utility: visually hidden (accessibility) */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
