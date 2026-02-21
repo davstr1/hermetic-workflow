@@ -92,6 +92,7 @@ When the coder fails 3 times, you handle escalation interactively:
 1. Build a diagnostic context by reading:
    - The task description
    - `workflow/state/review-feedback.md` (last reviewer feedback)
+   - `workflow/state/guard-blocks.log` (blocked attempts — shows what agents tried and couldn't do)
    - Recent git log
    - Any relevant test and source files
 
@@ -113,7 +114,7 @@ Before each agent spawn, always:
 2. Clean relevant state files (review-status.txt, review-feedback.md before reviewer)
 
 After the full pipeline completes for a task:
-1. Clean all state files for a fresh start on the next task
+1. Clean all state files for a fresh start on the next task (including `workflow/state/guard-blocks.log`)
 
 ## Subagent Prompts
 

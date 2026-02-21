@@ -100,7 +100,7 @@ your-project/
 │   │   ├── coder.md
 │   │   └── reviewer.md
 │   ├── hooks/
-│   │   ├── guard-files.sh    # PreToolUse: blocks coder from forbidden paths
+│   │   ├── guard-files.sh    # PreToolUse: hermetic access control + block logging
 │   │   └── enforce-lint.sh   # PostToolUse: runs lint + tests after coder writes
 │   └── settings.json         # Hook configuration
 ├── example-ui-rules/         # ESLint/Stylelint rules + nexum-lint

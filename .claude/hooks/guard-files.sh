@@ -409,6 +409,17 @@ check_bash() {
   return $failed
 }
 
+# ── Block logging ──
+# Append blocked attempts to a persistent log for orchestrator visibility.
+BLOCK_LOG="${CLAUDE_PROJECT_DIR}/workflow/state/guard-blocks.log"
+
+log_block() {
+  local msg="$1"
+  local timestamp
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  echo "[$timestamp] $msg" >> "$BLOCK_LOG" 2>/dev/null || true
+}
+
 # ── Main dispatch ──
 
 extract_and_check() {
@@ -421,7 +432,9 @@ extract_and_check() {
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
         if ! check_read "$file_path"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot read '$file_path'. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot read '$file_path'. Outside your scope."
+          echo "$msg" >&2
+          log_block "${CURRENT_AGENT} | Read | $file_path"
           blocked=1
         fi
       fi
@@ -433,7 +446,9 @@ extract_and_check() {
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
         if ! check_write "$file_path"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot write to '$file_path'. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot write to '$file_path'. Outside your scope."
+          echo "$msg" >&2
+          log_block "${CURRENT_AGENT} | ${TOOL_NAME} | $file_path"
           blocked=1
         fi
       fi
@@ -444,7 +459,9 @@ extract_and_check() {
       pattern=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null)
       if [[ -n "$pattern" ]]; then
         if ! check_glob "$pattern"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot glob '$pattern'. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot glob '$pattern'. Outside your scope."
+          echo "$msg" >&2
+          log_block "${CURRENT_AGENT} | Glob | $pattern"
           blocked=1
         fi
       fi
@@ -456,7 +473,9 @@ extract_and_check() {
       if [[ -n "$path" ]]; then
         path=$(rel_path "$path")
         if ! check_read "$path"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot search in '$path'. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot search in '$path'. Outside your scope."
+          echo "$msg" >&2
+          log_block "${CURRENT_AGENT} | Grep | $path"
           blocked=1
         fi
       fi
@@ -465,7 +484,9 @@ extract_and_check() {
       if [[ -n "$glob" ]]; then
         # Reuse glob check logic
         if ! check_glob "$glob"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot search with glob '$glob'. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot search with glob '$glob'. Outside your scope."
+          echo "$msg" >&2
+          log_block "${CURRENT_AGENT} | Grep(glob) | $glob"
           blocked=1
         fi
       fi
@@ -476,7 +497,11 @@ extract_and_check() {
       command=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
       if [[ -n "$command" ]]; then
         if ! check_bash "$command"; then
-          echo "BLOCKED: ${CURRENT_AGENT} agent cannot run this command. Outside your scope." >&2
+          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot run this command. Outside your scope."
+          echo "$msg" >&2
+          # Truncate long commands in the log
+          local log_cmd="${command:0:200}"
+          log_block "${CURRENT_AGENT} | Bash | $log_cmd"
           blocked=1
         fi
       fi

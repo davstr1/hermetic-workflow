@@ -75,6 +75,7 @@ Architect (setup) → Orchestrator spawns for each task:
 - `workflow/tasks.md` — Task list (markdown checkboxes)
 - `workflow/state/` — Inter-agent communication files
 - `workflow/state/current-agent.txt` — Current agent identifier (read by hooks)
+- `workflow/state/guard-blocks.log` — Persistent log of blocked hook attempts (read by orchestrator during escalation)
 - `example-ui-rules/` — ESLint/Stylelint rules + nexum-lint standalone linter
 
 ## Adding Tasks
