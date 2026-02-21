@@ -60,6 +60,6 @@ log "  LOOP PHASE — Orchestrator Agent"
 log "═══════════════════════════════════════════════════"
 echo ""
 
-claude --agent orchestrator
+claude --agent orchestrator -p "Read workflow/tasks.md and process all unchecked tasks through the pipeline: Planner → Test Maker → Coder → Reviewer. Start now."
 
 ok "Workflow complete."

@@ -194,12 +194,22 @@ if (targets.length === 0) {
   process.exit(0);
 }
 
+// ── Pass 0: Reject .js/.jsx files in TypeScript projects ──
+// In a TS project, all logic files must be .ts/.tsx. Plain JS is not allowed.
+const tsConfigExists = fs.existsSync(path.join(process.cwd(), 'tsconfig.json'));
+
 // ── Pass 1: Direct scan (all rules except CSS-specific) ──
 let totalErrors = 0;
 const allErrors = [];
 
 for (const f of targets) {
   if (!fs.existsSync(f)) continue;
+  if (tsConfigExists && (f.endsWith('.js') || f.endsWith('.jsx'))) {
+    const rel = path.relative(process.cwd(), f);
+    allErrors.push({ file: f, line: 1, col: 1, rule: 'no-js-in-ts-project',
+      msg: `"${rel}" is a .js file in a TypeScript project. Rename to .ts/.tsx.` });
+    continue;
+  }
   allErrors.push(...scanFile(f));
 }
 
