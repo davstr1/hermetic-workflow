@@ -50,6 +50,9 @@ if [[ "$skip_setup" == false ]]; then
   log "lint rules, and the task list."
   echo ""
 
+  # Set agent identity BEFORE launching Claude so guards apply from the first tool call
+  echo "architect" > "$STATE_DIR/current-agent.txt"
+
   claude --agent architect
 
   ok "Setup complete. Project context and tasks are ready."
@@ -67,6 +70,9 @@ log "The orchestrator will process all tasks from workflow/tasks.md."
 log "It runs inside a Ralph Wiggum loop until all tasks are complete."
 log "You will be consulted if escalation is needed."
 echo ""
+
+# Set agent identity BEFORE launching Claude so guards apply from the first tool call
+echo "orchestrator" > "$STATE_DIR/current-agent.txt"
 
 claude --agent orchestrator
 

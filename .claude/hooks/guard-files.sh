@@ -8,8 +8,9 @@
 #   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
 #   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
 #
-# Unrestricted agents: architect (and unknown/empty — for manual use)
+# Unrestricted agents: architect
 # Restricted agents: orchestrator, planner, test-maker, coder, reviewer
+# Unknown/empty: reads allowed, all writes blocked
 #
 # Exit codes:
 #   0 = allow (tool proceeds)
@@ -25,8 +26,20 @@ fi
 
 # Fully unrestricted agents pass through immediately
 case "$CURRENT_AGENT" in
-  architect|"") exit 0 ;;
+  architect) exit 0 ;;
 esac
+
+# Unknown/empty agent — block all writes, allow reads
+if [[ -z "$CURRENT_AGENT" ]]; then
+  case "$TOOL_NAME" in
+    Write|Edit|Bash)
+      echo "BLOCKED: No agent identity set. Run the workflow via ./orchestrator.sh or set current-agent.txt." >&2
+      exit 2
+      ;;
+  esac
+  # Allow Read, Glob, Grep so you can at least look around
+  exit 0
+fi
 
 # ── Read tool input ──
 INPUT=$(cat)
