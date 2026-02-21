@@ -39,7 +39,8 @@ if [[ -z "$TARGET" ]]; then
 fi
 
 # Resolve to absolute path
-TARGET="$(cd "$TARGET" 2>/dev/null && pwd || mkdir -p "$TARGET" && cd "$TARGET" && pwd)"
+[[ -d "$TARGET" ]] || mkdir -p "$TARGET"
+TARGET="$(cd "$TARGET" && pwd)"
 
 log "Bootstrapping hermetic workflow into: $TARGET"
 echo ""
