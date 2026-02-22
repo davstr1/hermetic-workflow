@@ -45,7 +45,6 @@ fi
 if [[ "$CURRENT_AGENT" == "architect" ]]; then
   case "$TOOL_NAME" in
     Write|Edit)
-      local file_path
       file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
       file_path=$(rel_path "$file_path")
       if matches_any "$file_path" \
