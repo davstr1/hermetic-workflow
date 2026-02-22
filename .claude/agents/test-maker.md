@@ -18,6 +18,14 @@ Given a task description, write test files that define the expected behavior. Te
 
 Your tool access is mechanically restricted to test files and `package.json`.
 
+## Off-Limits — Do Not Access
+
+These paths are blocked by the guard. Do not attempt to read, write, or glob them:
+- `.claude/agents/` — agent definitions
+- `example-ui-rules/eslint-rules/`, `example-ui-rules/stylelint-rules/`, `example-ui-rules/bin/` — lint rules
+
+You can only write to: test files (`*.test.*`, `*.spec.*`, `__tests__/`, `tests/`) and `package.json`.
+
 ## What You Can See
 
 - The current task (provided in your prompt)

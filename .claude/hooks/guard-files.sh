@@ -494,13 +494,19 @@ check_single_command() {
       return 1
       ;;
     test-maker)
-      # npm install / test commands
+      # npm / pnpm install / test commands
       [[ "$cmd" == npm\ install* ]] && return 0
       [[ "$cmd" == npm\ i\ * ]] && return 0
       [[ "$cmd" == npm\ test* ]] && return 0
       [[ "$cmd" == npm\ run\ test* ]] && return 0
       [[ "$cmd" == npx\ jest* ]] && return 0
       [[ "$cmd" == npx\ vitest* ]] && return 0
+      [[ "$cmd" == pnpm\ install* ]] && return 0
+      [[ "$cmd" == pnpm\ add\ * ]] && return 0
+      [[ "$cmd" == pnpm\ test* ]] && return 0
+      [[ "$cmd" == pnpm\ run\ test* ]] && return 0
+      [[ "$cmd" == pnpm\ exec\ jest* ]] && return 0
+      [[ "$cmd" == pnpm\ exec\ vitest* ]] && return 0
       # Node (verify test setup)
       [[ "$cmd" == node\ * ]] && return 0
       # Git read-only
@@ -529,9 +535,11 @@ check_single_command() {
       fi
       # Directory creation
       [[ "$cmd" == mkdir\ * ]] && return 0
-      # npm install (but NOT npm test or npx — scaffolder doesn't run tests)
+      # npm/pnpm install (but NOT test or exec — scaffolder doesn't run tests)
       [[ "$cmd" == npm\ install* ]] && return 0
       [[ "$cmd" == npm\ i\ * ]] && return 0
+      [[ "$cmd" == pnpm\ install* ]] && return 0
+      [[ "$cmd" == pnpm\ add\ * ]] && return 0
       # Node / TypeScript (verify setup)
       [[ "$cmd" == node\ * ]] && return 0
       [[ "$cmd" == tsc* ]] && return 0
@@ -559,12 +567,18 @@ check_single_command() {
       if [[ "$cmd" == *".test."* || "$cmd" == *".spec."* || "$cmd" == *"__tests__"* ]]; then
         return 1
       fi
-      # npm / build / run commands
+      # npm/pnpm / build / run commands
       [[ "$cmd" == npm\ install* ]] && return 0
       [[ "$cmd" == npm\ i\ * ]] && return 0
       [[ "$cmd" == npm\ run\ * ]] && return 0
       [[ "$cmd" == npm\ test* ]] && return 0
       [[ "$cmd" == npx\ * ]] && return 0
+      [[ "$cmd" == pnpm\ install* ]] && return 0
+      [[ "$cmd" == pnpm\ add\ * ]] && return 0
+      [[ "$cmd" == pnpm\ run\ * ]] && return 0
+      [[ "$cmd" == pnpm\ test* ]] && return 0
+      [[ "$cmd" == pnpm\ exec\ * ]] && return 0
+      [[ "$cmd" == pnpm\ build* ]] && return 0
       # Node / TypeScript
       [[ "$cmd" == node\ * ]] && return 0
       [[ "$cmd" == tsc* ]] && return 0
@@ -589,10 +603,16 @@ check_single_command() {
       [[ "$cmd" == npm\ run\ test* ]] && return 0
       [[ "$cmd" == npx\ jest* ]] && return 0
       [[ "$cmd" == npx\ vitest* ]] && return 0
+      [[ "$cmd" == pnpm\ test* ]] && return 0
+      [[ "$cmd" == pnpm\ run\ test* ]] && return 0
+      [[ "$cmd" == pnpm\ exec\ jest* ]] && return 0
+      [[ "$cmd" == pnpm\ exec\ vitest* ]] && return 0
       [[ "$cmd" == node\ example-ui-rules/bin/nexum-lint* ]] && return 0
       [[ "$cmd" == node\ */nexum-lint* ]] && return 0
-      # npm run (for lint/build scripts)
+      # npm/pnpm run (for lint/build scripts)
       [[ "$cmd" == npm\ run\ * ]] && return 0
+      [[ "$cmd" == pnpm\ run\ * ]] && return 0
+      [[ "$cmd" == pnpm\ build* ]] && return 0
       # Git commit workflow (but block destructive operations)
       [[ "$cmd" == git\ add* ]] && return 0
       [[ "$cmd" == git\ commit* ]] && return 0

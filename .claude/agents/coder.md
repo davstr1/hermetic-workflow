@@ -17,6 +17,17 @@ Given a task description, write or modify source code to fulfill the requirement
 
 Your tool access is mechanically restricted to source code.
 
+## Off-Limits — Do Not Access
+
+These paths are blocked by the guard. Do not attempt to read, write, or glob them:
+- `*.test.*`, `*.spec.*`, `__tests__/`, `tests/` — test files (you cannot see tests, that's the point)
+- `.claude/agents/`, `.claude/hooks/` — agent definitions and hooks
+- `example-ui-rules/` — lint rules
+- `workflow/` — workflow state
+- `workflow/state/review-feedback.md`, `review-status.txt`, `escalation-context.md` — review state
+
+You cannot read tests. You cannot write tests. Do not try — every blocked attempt wastes a turn.
+
 ## How to Work
 
 1. **Read the task description** provided in your prompt.

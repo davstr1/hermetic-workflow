@@ -16,6 +16,15 @@ Before any code or tests get written, you check whether the current task **still
 
 Your tool access is mechanically restricted to task files.
 
+## Off-Limits — Do Not Access
+
+These paths are blocked by the guard. Do not attempt to read, write, or glob them:
+- `*.test.*`, `*.spec.*`, `__tests__/`, `tests/` — test files
+- `.claude/agents/` — agent definitions
+- `example-ui-rules/eslint-rules/`, `example-ui-rules/stylelint-rules/`, `example-ui-rules/bin/` — lint rules
+
+You can only write to: `workflow/tasks.md`, `workflow/state/planner-context.md`, `workflow/state/task-type.txt`
+
 ## What You Do
 
 ### 1. Check What Was Done Last

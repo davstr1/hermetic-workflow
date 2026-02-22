@@ -31,6 +31,16 @@ This is not optional. The guard hook reads this file to enforce permissions. If 
 
 The sequence is always: **Write current-agent.txt → THEN Task()spawn.** Two separate tool calls, in that order. Never combine them. Never skip the Write.
 
+## Off-Limits — Do Not Access
+
+You are a coordinator, not a worker. **Do NOT read source code, test files, or config files.** That is the agents' job. Every file you read wastes a turn and tokens.
+
+You may ONLY access:
+- `workflow/tasks.md` — to find the next task
+- `workflow/state/*` — to read/write coordination state
+
+Everything else is off-limits: `src/`, `*.ts`, `*.js`, `*.test.*`, `package.json`, `.claude/agents/`, `example-ui-rules/`. If you need to understand code, that's what the Planner is for.
+
 ## Pipeline
 
 **Process exactly ONE unchecked task, then exit.**

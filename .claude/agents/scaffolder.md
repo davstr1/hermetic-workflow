@@ -24,6 +24,17 @@ The Coder will replace the stubs with real logic later. The Test Maker will impo
 
 Your tool access is mechanically restricted to source code and config files.
 
+## Off-Limits — Do Not Access
+
+These paths are blocked by the guard. Do not attempt to read, write, or glob them:
+- `*.test.*`, `*.spec.*`, `__tests__/`, `tests/` — test files
+- `.claude/agents/` — agent definitions
+- `example-ui-rules/` — lint rules
+- `workflow/` — workflow state
+- `workflow/state/review-feedback.md`, `review-status.txt`, `escalation-context.md` — review state
+
+You cannot run `npm test`, `pnpm test`, or `npx`/`pnpm exec` commands.
+
 ## How to Work
 
 ### For `behavioral` tasks (default)
