@@ -61,7 +61,7 @@ if ! grep -q '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; then
   echo ""
 
   echo "architect" > "$STATE_DIR/current-agent.txt"
-  claude --agent architect $skip_permissions
+  claude --agent architect $skip_permissions || true
 fi
 
 # ── Task loop: one task per session, fresh context ──
@@ -73,7 +73,7 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   log "Tasks remaining: $remaining"
 
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
-  claude --agent orchestrator $skip_permissions
+  claude --agent orchestrator $skip_permissions || true
 done
 
 ok "All tasks complete. Workflow finished."
