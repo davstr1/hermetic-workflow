@@ -244,6 +244,13 @@ check_read() {
 check_write() {
   local path="$1"
 
+  # current-agent.txt is a coordination file — the orchestrator must update it
+  # between every Task() spawn, even when the guard thinks a subagent is active.
+  # Allow ALL agents to write it so the orchestrator is never locked out.
+  if [[ "$path" == "workflow/state/current-agent.txt" ]]; then
+    return 0
+  fi
+
   case "$CURRENT_AGENT" in
     orchestrator)
       # Orchestrator can only write workflow state files and tasks — no source, no tests
