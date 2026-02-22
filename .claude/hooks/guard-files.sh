@@ -21,6 +21,7 @@ set -euo pipefail
 # ── Read tool input once, up front (stdin can only be read once) ──
 INPUT=$(cat)
 TOOL_NAME="${TOOL_NAME:-}"
+BLOCK_REASON=""
 
 # ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
@@ -135,43 +136,69 @@ check_read() {
       ;;
     coder)
       # Coder cannot read: tests, lint rules, agent defs, review state
+      if matches_any "$path" '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        BLOCK_REASON="Test files are hidden from the coder. Write code that fulfills the task description — tests are the test-maker's job."
+        return 1
+      fi
       if matches_any "$path" \
-        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*' 'example-ui-rules/.eslintrc*' \
-        'eslint-config.*' '.eslintrc*' 'stylelint.config.*' \
-        '.claude/agents/*' \
+        'eslint-config.*' '.eslintrc*' 'stylelint.config.*'; then
+        BLOCK_REASON="Lint rules are hidden from the coder. Fix lint errors using only the error messages shown after writes."
+        return 1
+      fi
+      if matches_any "$path" '.claude/agents/*'; then
+        BLOCK_REASON="Agent definitions are off-limits to the coder."
+        return 1
+      fi
+      if matches_any "$path" \
         'workflow/state/review-feedback.md' 'workflow/state/review-status.txt' \
         'workflow/state/escalation-context.md'; then
+        BLOCK_REASON="Review state is off-limits. The orchestrator will provide feedback if you need to retry."
         return 1
       fi
       ;;
     planner)
       # Planner cannot read: tests, lint rules, or agent defs
+      if matches_any "$path" '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        BLOCK_REASON="Test files are hidden from the planner. Plan from task descriptions and source code only."
+        return 1
+      fi
+      if matches_any "$path" '.claude/agents/*'; then
+        BLOCK_REASON="Agent definitions are off-limits to the planner."
+        return 1
+      fi
       if matches_any "$path" \
-        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
-        '.claude/agents/*' \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*'; then
+        BLOCK_REASON="Lint rules are hidden from the planner."
         return 1
       fi
       ;;
     test-maker)
       # Test-maker cannot read: lint rules, agent defs
+      if matches_any "$path" '.claude/agents/*'; then
+        BLOCK_REASON="Agent definitions are off-limits to the test-maker."
+        return 1
+      fi
       if matches_any "$path" \
-        '.claude/agents/*' \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*'; then
+        BLOCK_REASON="Lint rules are hidden from the test-maker."
         return 1
       fi
       ;;
     reviewer)
       # Reviewer works from test/lint OUTPUT only — cannot read source files for either.
+      if matches_any "$path" '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        BLOCK_REASON="Test SOURCE files are hidden from the reviewer. Run tests with 'npm test' and judge from the output only."
+        return 1
+      fi
       if matches_any "$path" \
-        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*' 'example-ui-rules/.eslintrc*' \
         'eslint-config.*' '.eslintrc*' 'stylelint.config.*'; then
+        BLOCK_REASON="Lint rule SOURCE files are hidden from the reviewer. Run lint and judge from the output only."
         return 1
       fi
       ;;
@@ -518,8 +545,10 @@ extract_and_check() {
       file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
+        BLOCK_REASON=""
         if ! check_read "$file_path"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot read '$file_path'. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot read '$file_path'."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           log_block "${CURRENT_AGENT} | Read | $file_path"
           blocked=1
@@ -532,8 +561,10 @@ extract_and_check() {
       file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
+        BLOCK_REASON=""
         if ! check_write "$file_path"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot write to '$file_path'. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot write to '$file_path'."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           log_block "${CURRENT_AGENT} | ${TOOL_NAME} | $file_path"
           blocked=1
@@ -545,8 +576,10 @@ extract_and_check() {
       local pattern
       pattern=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null)
       if [[ -n "$pattern" ]]; then
+        BLOCK_REASON=""
         if ! check_glob "$pattern"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot glob '$pattern'. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot glob '$pattern'."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           log_block "${CURRENT_AGENT} | Glob | $pattern"
           blocked=1
@@ -559,8 +592,10 @@ extract_and_check() {
       path=$(echo "$INPUT" | jq -r '.path // empty' 2>/dev/null)
       if [[ -n "$path" ]]; then
         path=$(rel_path "$path")
+        BLOCK_REASON=""
         if ! check_read "$path"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot search in '$path'. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot search in '$path'."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           log_block "${CURRENT_AGENT} | Grep | $path"
           blocked=1
@@ -569,9 +604,10 @@ extract_and_check() {
       local glob
       glob=$(echo "$INPUT" | jq -r '.glob // empty' 2>/dev/null)
       if [[ -n "$glob" ]]; then
-        # Reuse glob check logic
+        BLOCK_REASON=""
         if ! check_glob "$glob"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot search with glob '$glob'. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot search with glob '$glob'."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           log_block "${CURRENT_AGENT} | Grep(glob) | $glob"
           blocked=1
@@ -583,8 +619,10 @@ extract_and_check() {
       local command
       command=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
       if [[ -n "$command" ]]; then
+        BLOCK_REASON=""
         if ! check_bash "$command"; then
-          local msg="BLOCKED: ${CURRENT_AGENT} agent cannot run this command. Outside your scope."
+          local msg="BLOCKED: ${CURRENT_AGENT} cannot run this command."
+          [[ -n "$BLOCK_REASON" ]] && msg="$msg $BLOCK_REASON"
           echo "$msg" >&2
           # Truncate long commands in the log
           local log_cmd="${command:0:200}"
