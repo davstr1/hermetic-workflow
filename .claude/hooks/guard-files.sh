@@ -15,8 +15,68 @@
 # Exit codes:
 #   0 = allow (tool proceeds)
 #   2 = block (tool is denied, stderr shown to agent)
+#
+# IMPORTANT: This script must NEVER exit 1 by accident.
+# Exit 1 = error = Claude Code lets the tool through.
+# Exit 2 = intentional block = Claude Code shows stderr to agent.
+# So: no set -e, no set -u, no set -o pipefail. Handle errors explicitly.
 
-set -euo pipefail
+# ── Path helpers (must be defined before first use) ──
+
+# Make a path relative to project dir
+rel_path() {
+  local p="$1"
+  local project_dir="${CLAUDE_PROJECT_DIR:-}"
+  if [[ -n "$project_dir" ]]; then
+    p="${p#"${project_dir}"/}"
+  fi
+  p="${p#./}"
+  echo "$p"
+}
+
+# Check if a path matches any pattern in a list
+# Usage: matches_any "path" "pattern1" "pattern2" ...
+matches_any() {
+  local path="$1"; shift
+  local base
+  base=$(basename "$path")
+
+  for pattern in "$@"; do
+    case "$pattern" in
+      # Directory wildcard: "dir/*" matches anything under dir
+      */\*)
+        local dir="${pattern%/*}"
+        if [[ "$path" == "$dir"/* || "$path" == "$dir" ]]; then
+          return 0
+        fi
+        ;;
+      # Basename glob: "*.test.*" matches the filename part
+      \*.*)
+        case "$base" in
+          $pattern) return 0 ;;
+        esac
+        ;;
+      # Exact match
+      *)
+        if [[ "$path" == $pattern ]]; then
+          return 0
+        fi
+        ;;
+    esac
+  done
+  return 1
+}
+
+# ── Block logging ──
+# Append blocked attempts to a persistent log for orchestrator visibility.
+BLOCK_LOG="${CLAUDE_PROJECT_DIR:-/tmp}/workflow/state/guard-blocks.log"
+
+log_block() {
+  local msg="$1"
+  local timestamp
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  echo "[$timestamp] $msg" >> "$BLOCK_LOG" 2>/dev/null || true
+}
 
 # ── Read tool input once, up front (stdin can only be read once) ──
 INPUT=$(cat)
@@ -25,8 +85,11 @@ BLOCK_REASON=""
 
 # ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
-if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" ]]; then
-  CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
+if [[ -z "$CURRENT_AGENT" ]]; then
+  local_state="${CLAUDE_PROJECT_DIR:-}/workflow/state/current-agent.txt"
+  if [[ -f "$local_state" ]]; then
+    CURRENT_AGENT=$(cat "$local_state" 2>/dev/null || echo "")
+  fi
 fi
 
 # ── Universal block: node_modules is off-limits to ALL agents ──
@@ -37,7 +100,7 @@ case "$TOOL_NAME" in
   Glob) nm_path=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null) ;;
   Bash) nm_path=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null) ;;
 esac
-if [[ "$nm_path" == *"node_modules"* ]]; then
+if [[ "${nm_path:-}" == *"node_modules"* ]]; then
   echo "BLOCKED: node_modules/ is off-limits to all agents." >&2
   exit 2
 fi
@@ -81,49 +144,6 @@ if [[ -z "$CURRENT_AGENT" ]]; then
   exit 0
 fi
 
-# ── Path helpers ──
-
-# Make a path relative to project dir
-rel_path() {
-  local p="$1"
-  p="${p#"${CLAUDE_PROJECT_DIR}"/}"
-  p="${p#./}"
-  echo "$p"
-}
-
-# Check if a path matches any pattern in a list
-# Usage: matches_any "path" "pattern1" "pattern2" ...
-matches_any() {
-  local path="$1"; shift
-  local base
-  base=$(basename "$path")
-
-  for pattern in "$@"; do
-    case "$pattern" in
-      # Directory wildcard: "dir/*" matches anything under dir
-      */\*)
-        local dir="${pattern%/*}"
-        if [[ "$path" == "$dir"/* || "$path" == "$dir" ]]; then
-          return 0
-        fi
-        ;;
-      # Basename glob: "*.test.*" matches the filename part
-      \*.*)
-        case "$base" in
-          $pattern) return 0 ;;
-        esac
-        ;;
-      # Exact match
-      *)
-        if [[ "$path" == $pattern ]]; then
-          return 0
-        fi
-        ;;
-    esac
-  done
-  return 1
-}
-
 # ── Per-agent READ restrictions ──
 # Returns 0 if read is allowed, 1 if blocked
 check_read() {
@@ -131,8 +151,7 @@ check_read() {
 
   case "$CURRENT_AGENT" in
     orchestrator)
-      # Orchestrator cannot read: source code internals are not its job
-      # but it needs visibility into workflow state, tasks, agent defs, and git
+      # Orchestrator: unrestricted reads for workflow state, tasks, agent defs
       ;;
     coder)
       # Coder cannot read: tests, lint rules, agent defs, review state
@@ -521,17 +540,6 @@ check_bash() {
   done <<< "$segments"
 
   return $failed
-}
-
-# ── Block logging ──
-# Append blocked attempts to a persistent log for orchestrator visibility.
-BLOCK_LOG="${CLAUDE_PROJECT_DIR}/workflow/state/guard-blocks.log"
-
-log_block() {
-  local msg="$1"
-  local timestamp
-  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "[$timestamp] $msg" >> "$BLOCK_LOG" 2>/dev/null || true
 }
 
 # ── Main dispatch ──
