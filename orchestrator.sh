@@ -11,8 +11,9 @@
 #     /plugin install ralph-wiggum@anthropics-claude-code
 #
 # Usage:
-#   ./orchestrator.sh              # Full run (setup + loop)
-#   ./orchestrator.sh --skip-setup # Skip architect setup, go straight to loop
+#   ./orchestrator.sh                        # Full run (setup + loop)
+#   ./orchestrator.sh --skip-setup           # Skip architect setup, go straight to loop
+#   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts (hooks are the real guard)
 
 set -euo pipefail
 
@@ -34,9 +35,11 @@ mkdir -p "$STATE_DIR"
 
 # Parse args
 skip_setup=false
+skip_permissions=""
 for arg in "$@"; do
   case "$arg" in
     --skip-setup|--loop-only) skip_setup=true ;;
+    --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
   esac
 done
 
@@ -53,7 +56,7 @@ if [[ "$skip_setup" == false ]]; then
   # Set agent identity BEFORE launching Claude so guards apply from the first tool call
   echo "architect" > "$STATE_DIR/current-agent.txt"
 
-  claude --agent architect
+  claude --agent architect $skip_permissions
 
   ok "Setup complete. Project context and tasks are ready."
   echo ""
@@ -74,6 +77,6 @@ echo ""
 # Set agent identity BEFORE launching Claude so guards apply from the first tool call
 echo "orchestrator" > "$STATE_DIR/current-agent.txt"
 
-claude --agent orchestrator
+claude --agent orchestrator $skip_permissions
 
 ok "Workflow complete."
