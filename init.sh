@@ -106,6 +106,7 @@ copy_always "$SCRIPT_DIR/.claude/agents/planner.md"      "$TARGET/.claude/agents
 copy_always "$SCRIPT_DIR/.claude/agents/test-maker.md"   "$TARGET/.claude/agents/test-maker.md"
 copy_always "$SCRIPT_DIR/.claude/agents/coder.md"        "$TARGET/.claude/agents/coder.md"
 copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"     "$TARGET/.claude/agents/reviewer.md"
+copy_always "$SCRIPT_DIR/.claude/agents/closer.md"      "$TARGET/.claude/agents/closer.md"
 
 # Version file — always overwrite
 copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"

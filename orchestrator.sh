@@ -134,20 +134,39 @@ fi
 log "Starting task loop..."
 echo ""
 
+SENTINEL="$STATE_DIR/task-complete"
 TOTAL_ACTIVE_TIME=0
 
 while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
   log "Tasks remaining: $remaining"
 
-  # Record start time
-  task_start=$(date +%s)
+  # Clear sentinel and record start time
+  rm -f "$SENTINEL"
+  date +%s > "$STATE_DIR/task-start-time.txt"
 
-  # Launch orchestrator agent — runs synchronously, one task per invocation
-  echo "Process the next unchecked task from workflow/tasks.md. Pipeline: Planner → Test Maker (commit) → Coder (commit) → Reviewer (verify + commit)." \
-    | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) || true
+  # Launch orchestrator in background (fresh context per task)
+  echo "Process the next unchecked task from workflow/tasks.md. Pipeline: Planner → Test Maker (commit) → Coder (commit) → Reviewer (verify + commit). On PASS, spawn Closer." \
+    | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) &
+  CLAUDE_PID=$!
+
+  # Watch for sentinel — kill session when task is done (fresh context for next task)
+  while kill -0 "$CLAUDE_PID" 2>/dev/null; do
+    if [[ -f "$SENTINEL" ]]; then
+      log "Task complete. Killing session for fresh context..."
+      kill "$CLAUDE_PID" 2>/dev/null
+      wait "$CLAUDE_PID" 2>/dev/null || true
+      break
+    fi
+    sleep 2
+  done
+
+  # If process exited on its own (no sentinel), still reap it
+  wait "$CLAUDE_PID" 2>/dev/null || true
+  rm -f "$SENTINEL"
 
   # Track task duration
+  task_start=$(cat "$STATE_DIR/task-start-time.txt" 2>/dev/null || echo "0")
   task_end=$(date +%s)
   task_duration=$((task_end - task_start))
   TOTAL_ACTIVE_TIME=$((TOTAL_ACTIVE_TIME + task_duration))
@@ -162,3 +181,6 @@ total_min=$((TOTAL_ACTIVE_TIME / 60))
 total_sec=$((TOTAL_ACTIVE_TIME % 60))
 ok "All tasks complete. Workflow finished."
 ok "Total active time: ${total_min}m ${total_sec}s"
+if [[ -f "$STATE_DIR/usage-log.md" ]]; then
+  ok "Usage log: $STATE_DIR/usage-log.md"
+fi

@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Orchestrates the TDD workflow across specialized agents
-tools: Task(planner, test-maker, coder, reviewer), Read, Write
+tools: Task(planner, test-maker, coder, reviewer, closer), Read, Write
 model: sonnet
 maxTurns: 200
 color: green
@@ -26,7 +26,7 @@ Planner → Test Maker (commit) → Coder (commit) → Reviewer (verify + commit
 3. **Coder** — Spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`. The coder scaffolds stubs if needed, implements, and commits.
 4. **Reviewer** — Clean `review-status.txt` and `review-feedback.md` first. Spawn reviewer. The reviewer runs tests, verifies git history (coder didn't modify tests), and commits on PASS.
 5. **Check verdict** — Read `workflow/state/review-status.txt`:
-   - **PASS**: Mark task done (`- [x]`), clean state files, exit. The bash loop starts the next task.
+   - **PASS**: Mark task done (`- [x]`), clean state files, then spawn the **Closer**. The closer logs usage and writes the sentinel so the bash loop kills this session and starts fresh for the next task.
    - **FAIL**: If attempt < 3, go to step 2 (Test Maker) with feedback. If attempt >= 3, escalate.
 
 ## How to Prompt Agents
