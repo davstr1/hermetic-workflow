@@ -73,7 +73,7 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   log "Tasks remaining: $remaining"
 
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
-  claude --agent orchestrator -p "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." $skip_permissions || true
+  echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." | claude --agent orchestrator $skip_permissions || true
 done
 
 ok "All tasks complete. Workflow finished."
