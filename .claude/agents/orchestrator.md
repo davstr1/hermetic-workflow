@@ -39,7 +39,7 @@ The sequence is always: **Write current-agent.txt → THEN Task()spawn.** Two se
 3. **Coder** — Write `coder` to `workflow/state/current-agent.txt`. THEN spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`.
 4. **Reviewer** — Write `reviewer` to `workflow/state/current-agent.txt`. Clean `review-status.txt` and `review-feedback.md` first. THEN spawn.
 5. **Check verdict** — Read `workflow/state/review-status.txt`:
-   - **PASS**: Mark task done (`- [x]`), clean all state files, then **exit**. The bash loop handles the next task.
+   - **PASS**: Mark task done (`- [x]`), clean all state files, then write `DONE` to `workflow/state/task-complete`. The bash loop handles the next task.
    - **FAIL**: If attempt < 3, go to step 3 with feedback. If attempt >= 3, escalate.
 
 ## Escalation
@@ -51,7 +51,7 @@ When the coder fails 3 times:
 3. Present the diagnosis to the user. Explain what's failing, whether it's a rules/test/code problem, and proposed fixes.
 4. After the user responds, apply fixes or spawn the appropriate agent.
 5. Clean state files and re-run from the Planner step.
-6. If still failing after escalation + 3 more retries, mark as `- [!] <task> (STUCK)` and move on.
+6. If still failing after escalation + 3 more retries, mark as `- [!] <task> (STUCK)`, write `DONE` to `workflow/state/task-complete`, and move on.
 
 ## Rules
 

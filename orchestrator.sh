@@ -75,6 +75,8 @@ echo ""
 # Clear block log before starting
 > "$BLOCK_LOG" 2>/dev/null || true
 
+SENTINEL="$STATE_DIR/task-complete"
+
 while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
   log "Tasks remaining: $remaining"
@@ -85,8 +87,29 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
     blocks_before=$(wc -l < "$BLOCK_LOG" 2>/dev/null || echo "0")
   fi
 
+  # Clear sentinel
+  rm -f "$SENTINEL"
+
+  # Launch orchestrator in background
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
-  echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." | claude --agent orchestrator $skip_permissions || true
+  echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." \
+    | claude --agent orchestrator $skip_permissions &
+  CLAUDE_PID=$!
+
+  # Watch for sentinel — kill session when task is done
+  while kill -0 "$CLAUDE_PID" 2>/dev/null; do
+    if [[ -f "$SENTINEL" ]]; then
+      log "Task complete. Killing session for fresh context..."
+      kill "$CLAUDE_PID" 2>/dev/null
+      wait "$CLAUDE_PID" 2>/dev/null || true
+      break
+    fi
+    sleep 2
+  done
+
+  # If process exited on its own (no sentinel), still reap it
+  wait "$CLAUDE_PID" 2>/dev/null || true
+  rm -f "$SENTINEL"
 
   # Report blocks from this session
   if [[ -f "$BLOCK_LOG" ]]; then
