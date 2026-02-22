@@ -26,7 +26,7 @@ Planner → Test Maker (commit) → Coder (commit) → Reviewer (verify + commit
 3. **Coder** — Spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`. The coder scaffolds stubs if needed, implements, and commits.
 4. **Reviewer** — Clean `review-status.txt` and `review-feedback.md` first. Spawn reviewer. The reviewer runs tests, verifies git history (coder didn't modify tests), and commits on PASS.
 5. **Check verdict** — Read `workflow/state/review-status.txt`:
-   - **PASS**: Mark task done (`- [x]`), clean state files, then spawn the **Closer**. The closer logs usage and writes the sentinel so the bash loop kills this session and starts fresh for the next task.
+   - **PASS**: Mark task done (`- [x]`), clean state files, then spawn the **Closer** for usage logging. **After the closer returns, YOU must write `DONE` to `workflow/state/task-complete`** — this is the sentinel that tells the bash loop to kill this session and start fresh. Do not rely on the closer for this.
    - **FAIL**: If attempt < 3, read `workflow/state/review-feedback.md` and decide who needs to retry:
      - **Test problem** (stale mocks, wrong assertions, missing tests) → go to step 2 (Test Maker) with feedback
      - **Code problem** (wrong implementation, missing logic, build errors) → go to step 3 (Coder) with feedback
