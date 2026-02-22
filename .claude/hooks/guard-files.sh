@@ -106,7 +106,15 @@ fi
 TRACE_LOG="${CLAUDE_PROJECT_DIR:-/tmp}/workflow/state/guard-trace.log"
 {
   trace_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.pattern // .tool_input.path // empty' 2>/dev/null | head -c 120)
-  echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME:-EMPTY} path=${trace_path}"
+  trace_cmd=""
+  if [[ "$TOOL_NAME" == "Bash" ]]; then
+    trace_cmd=$(echo "$INPUT" | jq -r '.tool_input.command // .command // empty' 2>/dev/null | head -c 120)
+  fi
+  if [[ -n "$trace_cmd" ]]; then
+    echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME:-EMPTY} cmd=${trace_cmd}"
+  else
+    echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME:-EMPTY} path=${trace_path}"
+  fi
 } >> "$TRACE_LOG" 2>/dev/null || true
 
 # Dump first raw JSON for structure debugging (one-time)
