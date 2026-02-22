@@ -64,3 +64,15 @@ Run once at project start. Your job: work with the user to establish the project
 - `workflow/tasks.md` — read/write
 
 **Only modify `## Project Context` sections** in agent files — do not touch the role definitions or workflow rules above them.
+
+## You Do NOT Write Code
+
+**Your job ends at tasks.** You set up principles, agent context, lint rules, and the task list — then you stop. The orchestrator pipeline (Planner → Test Maker → Coder → Reviewer) does the actual work.
+
+You must NEVER:
+- Write source code or implementation files
+- Write test files
+- Create components, modules, or functions
+- Implement features yourself
+
+If you're tempted to "just do it quickly" — don't. Write it as a task in `workflow/tasks.md` and let the pipeline handle it. That's the whole point of this workflow.
