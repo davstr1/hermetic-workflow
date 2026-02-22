@@ -18,10 +18,15 @@ The result: agents that do their actual job because they literally can't do anyt
 
 ## How It Works
 
-Six agents, orchestrated in a loop:
+A bash script handles routing and looping. The orchestrator is the only agent that can spawn subagents — every other agent is a pure worker.
 
 ```
-Architect (setup) → Orchestrator runs for each task:
+orchestrator.sh (bash):
+  if no tasks → claude --agent architect     (pure worker, does setup, exits)
+  while unchecked tasks remain:
+    claude --agent orchestrator              (ONE task, fresh context, exits)
+
+orchestrator agent (per task):
   Planner → Test Maker → Coder → Reviewer
                           ↑         ↓
                           └── FAIL ──┘  (max 3 retries)
@@ -32,13 +37,13 @@ Architect (setup) → Orchestrator runs for each task:
 | Agent | What it does | Can read | Can write | Bash allowlist |
 |-------|-------------|----------|-----------|----------------|
 | **Architect** | Sets up principles, lint rules, task list | Everything | `CLAUDE.md`, agent defs, lint rules, `workflow/tasks.md` | Unrestricted |
-| **Orchestrator** | Spawns agents, manages the loop | Everything | `workflow/tasks.md` + `workflow/state/*` only | Read-only (git log, cat, ls) |
+| **Orchestrator** | Spawns agents for ONE task, then exits | Everything | `workflow/tasks.md` + `workflow/state/*` only | None (Read/Write only) |
 | **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, git log (no tests, no lint rules) | `workflow/tasks.md` + its context file only | git read-only, read utils |
 | **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only | npm install/test, node, git read-only |
 | **Coder** | Writes implementation code | Source code, principles | Source code only | npm, npx, node, tsc, mkdir, git read-only |
 | **Reviewer** | Runs tests + lint, commits on PASS | Source code, principles (no tests, no lint rules) | `review-status.txt` + `review-feedback.md` only | npm test, nexum-lint, git add/commit |
 
-Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. Bash commands are **allowlisted per agent** — shell-based file writes, subshells, and eval are blocked for all restricted agents, and compound commands are split and validated individually. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
+Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. Bash commands are **allowlisted per agent** — shell-based file writes, subshells, and eval are blocked for all restricted agents, and compound commands are split and validated individually. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code. Each orchestrator invocation gets fresh context — no stale results from previous tasks.
 
 ## Quick Start
 
@@ -58,11 +63,11 @@ This copies the workflow files into your project. No git remote is added.
 ### Run
 
 ```bash
-# Full run: interactive setup, then process all tasks
+# Full run: setup if needed, then process all tasks
 ./orchestrator.sh
 
-# Skip setup if you already have tasks defined
-./orchestrator.sh --skip-setup
+# Skip permission prompts (hooks are the real guard)
+./orchestrator.sh --dangerously-skip-permissions
 ```
 
 Or run agents directly:
@@ -71,7 +76,7 @@ Or run agents directly:
 # Interactive setup only (define principles, rules, tasks)
 claude --agent architect
 
-# Process all tasks (the main loop)
+# Process one task (the orchestrator exits after each task)
 claude --agent orchestrator
 ```
 
@@ -117,14 +122,13 @@ your-project/
 │   │   └── reviewer.md
 │   ├── hooks/
 │   │   ├── guard-files.sh    # PreToolUse: hermetic access control + block logging
-│   │   ├── enforce-lint.sh   # PostToolUse: runs lint + tests after coder writes
-│   │   └── stop-loop.sh      # Stop hook: keeps orchestrator looping until all tasks done
+│   │   └── enforce-lint.sh   # PostToolUse: runs lint + tests after coder writes
 │   └── settings.json         # Hook configuration
 ├── example-ui-rules/         # ESLint/Stylelint rules + nexum-lint
 ├── workflow/
 │   ├── tasks.md              # Task list (markdown checkboxes)
 │   └── state/                # Inter-agent communication (gitignored)
-├── orchestrator.sh           # Entry point (thin wrapper)
+├── orchestrator.sh           # Entry point: bash routing + task loop
 └── CLAUDE.md                 # Project description + principles (auto-loaded into all agents)
 ```
 

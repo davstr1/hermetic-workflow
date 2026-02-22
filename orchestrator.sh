@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # orchestrator.sh — Launches the hermetic TDD workflow.
 #
-# Default: runs the Architect agent, which does interactive setup
-# then spawns the Orchestrator as a subagent to process all tasks.
+# Bash handles routing and looping. The orchestrator is invoked once per task
+# with fresh context, preventing stale accumulation.
 #
-# --skip-setup: skip the Architect and run the Orchestrator directly.
+# Flow:
+#   1. Git pre-flight (init repo + remote if needed)
+#   2. If no tasks exist → run architect for interactive setup
+#   3. While unchecked tasks remain → run orchestrator (one task per session)
 #
 # Usage:
-#   ./orchestrator.sh                        # Full run (architect → orchestrator)
-#   ./orchestrator.sh --skip-setup           # Skip architect, go straight to loop
+#   ./orchestrator.sh                                # Full run
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts (hooks are the real guard)
 
 set -euo pipefail
@@ -45,28 +47,33 @@ if ! git -C "$PROJECT_DIR" remote get-url origin &>/dev/null; then
 fi
 
 # Parse args
-skip_setup=false
 skip_permissions=""
 for arg in "$@"; do
   case "$arg" in
-    --skip-setup|--loop-only) skip_setup=true ;;
     --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
   esac
 done
 
-if [[ "$skip_setup" == false ]]; then
-  log "Starting Architect (interactive setup → orchestrator handoff)"
+# ── Setup check ──
+# If no tasks exist, run the architect for interactive setup.
+if ! grep -q '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; then
+  log "No tasks found — running Architect for setup..."
   echo ""
 
   echo "architect" > "$STATE_DIR/current-agent.txt"
   claude --agent architect $skip_permissions
+fi
 
-else
-  log "Skipping setup — launching Orchestrator directly"
-  echo ""
+# ── Task loop: one task per session, fresh context ──
+log "Starting task loop..."
+echo ""
+
+while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
+  remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
+  log "Tasks remaining: $remaining"
 
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
   claude --agent orchestrator $skip_permissions
-fi
+done
 
-ok "Workflow complete."
+ok "All tasks complete. Workflow finished."

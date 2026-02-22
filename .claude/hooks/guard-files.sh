@@ -244,7 +244,8 @@ check_glob() {
 
   case "$CURRENT_AGENT" in
     orchestrator)
-      # Orchestrator can glob anything — needs full visibility to coordinate
+      # Orchestrator has no Glob access — only Read and Write
+      return 1
       ;;
     coder)
       for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
@@ -345,17 +346,7 @@ check_single_command() {
 
   case "$CURRENT_AGENT" in
     orchestrator)
-      # Git read-only
-      [[ "$cmd" == git\ log* ]] && return 0
-      [[ "$cmd" == git\ diff* ]] && return 0
-      [[ "$cmd" == git\ status* ]] && return 0
-      [[ "$cmd" == git\ show* ]] && return 0
-      # Read-only utilities
-      [[ "$cmd" == ls* ]] && return 0
-      [[ "$cmd" == cat\ * ]] && return 0
-      [[ "$cmd" == head\ * ]] && return 0
-      [[ "$cmd" == tail\ * ]] && return 0
-      [[ "$cmd" == wc\ * ]] && return 0
+      # Orchestrator has no Bash access — only Read and Write via dedicated tools
       return 1
       ;;
     planner)

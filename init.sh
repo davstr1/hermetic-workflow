@@ -76,7 +76,6 @@ copy_always() {
 log "Copying workflow engine..."
 copy_always "$SCRIPT_DIR/.claude/hooks/guard-files.sh"  "$TARGET/.claude/hooks/guard-files.sh"
 copy_always "$SCRIPT_DIR/.claude/hooks/enforce-lint.sh" "$TARGET/.claude/hooks/enforce-lint.sh"
-copy_always "$SCRIPT_DIR/.claude/hooks/stop-loop.sh"    "$TARGET/.claude/hooks/stop-loop.sh"
 copy_always "$SCRIPT_DIR/.claude/settings.json"         "$TARGET/.claude/settings.json"
 copy_always "$SCRIPT_DIR/orchestrator.sh"               "$TARGET/orchestrator.sh"
 
@@ -114,7 +113,6 @@ fi
 chmod +x "$TARGET/orchestrator.sh"
 chmod +x "$TARGET/.claude/hooks/guard-files.sh"
 chmod +x "$TARGET/.claude/hooks/enforce-lint.sh"
-chmod +x "$TARGET/.claude/hooks/stop-loop.sh"
 
 # ── Create state directory ──
 mkdir -p "$TARGET/workflow/state"
@@ -135,7 +133,4 @@ echo ""
 log "Next steps:"
 echo "  cd $TARGET"
 echo "  ./orchestrator.sh          # Run setup + task loop"
-echo ""
-log "Or skip setup if you already have tasks defined:"
-echo "  ./orchestrator.sh --skip-setup"
 echo ""

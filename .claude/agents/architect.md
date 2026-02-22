@@ -1,7 +1,7 @@
 ---
 name: architect
 description: "Sets up project principles, lint rules, per-agent context, and task list interactively"
-tools: Task(orchestrator), Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep
 model: opus
 color: red
 ---
@@ -41,9 +41,7 @@ Run once at project start. Your job: work with the user to establish the project
 
 6. **Scaffold tasks**: Create or update `workflow/tasks.md` with the initial task list from the user.
 
-7. **Confirm**: Show the user a summary of principles + per-agent context + rules + tasks. Get approval before the loop begins.
-
-8. **Launch the Orchestrator**: Once the user approves, write `orchestrator` to `workflow/state/current-agent.txt`, then spawn the orchestrator agent with `Task(orchestrator)`. It will process all tasks from `workflow/tasks.md` autonomously. Your job is done after handoff.
+7. **Confirm**: Show the user a summary of principles + per-agent context + rules + tasks. Get approval. Your job is done — the bash loop in `orchestrator.sh` will take over and process tasks.
 
 ### What Goes Where
 
