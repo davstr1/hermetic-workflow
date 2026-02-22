@@ -23,14 +23,21 @@ Planner → Test Maker → Coder → Reviewer
 
 **The Test Maker ALWAYS runs before the Coder. No exceptions.** This is test-driven development: tests define the spec, then the coder implements against them. If you skip the Test Maker or run the Coder first, the entire workflow is broken.
 
+## Critical: Agent Identity
+
+**Before EVERY Task() spawn, you MUST first use Write to set `workflow/state/current-agent.txt`.**
+This is not optional. The guard hook reads this file to enforce permissions. If you spawn without writing it first, the subagent runs with the WRONG identity and can access files it shouldn't.
+
+The sequence is always: **Write current-agent.txt → THEN Task()spawn.** Two separate tool calls, in that order. Never combine them. Never skip the Write.
+
 ## Pipeline
 
 **Process exactly ONE unchecked task, then exit.**
 
-1. **Planner** — Write `planner` to `workflow/state/current-agent.txt`, then spawn. The planner adapts the next task to match what was actually built — plans go stale. Re-read `workflow/tasks.md` afterward (planner may have rewritten or decomposed the task).
-2. **Test Maker** — Write `test-maker` to `workflow/state/current-agent.txt`, then spawn with the (possibly updated) task description. **Must run before the Coder.**
-3. **Coder** — Write `coder` to `workflow/state/current-agent.txt`, then spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`.
-4. **Reviewer** — Write `reviewer` to `workflow/state/current-agent.txt`. Clean `review-status.txt` and `review-feedback.md` first, then spawn.
+1. **Planner** — Write `planner` to `workflow/state/current-agent.txt`. THEN spawn planner. The planner adapts the next task to match what was actually built — plans go stale. Re-read `workflow/tasks.md` afterward (planner may have rewritten or decomposed the task).
+2. **Test Maker** — Write `test-maker` to `workflow/state/current-agent.txt`. THEN spawn with the (possibly updated) task description. **Must run before the Coder.**
+3. **Coder** — Write `coder` to `workflow/state/current-agent.txt`. THEN spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`.
+4. **Reviewer** — Write `reviewer` to `workflow/state/current-agent.txt`. Clean `review-status.txt` and `review-feedback.md` first. THEN spawn.
 5. **Check verdict** — Read `workflow/state/review-status.txt`:
    - **PASS**: Mark task done (`- [x]`), clean all state files, then **exit**. The bash loop handles the next task.
    - **FAIL**: If attempt < 3, go to step 3 with feedback. If attempt >= 3, escalate.
