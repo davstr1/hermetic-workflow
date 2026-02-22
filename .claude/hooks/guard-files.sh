@@ -148,8 +148,9 @@ check_read() {
       fi
       ;;
     planner)
-      # Planner cannot read: source code is fine, but lint rules and agent defs are off-limits
+      # Planner cannot read: tests, lint rules, or agent defs
       if matches_any "$path" \
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
         '.claude/agents/*' \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*'; then
@@ -257,6 +258,9 @@ check_glob() {
       fi
       ;;
     planner)
+      if [[ "$pattern" == *".test."* || "$pattern" == *".spec."* || "$pattern" == *"__tests__"* || "$pattern" == *"tests/"* ]]; then
+        return 1
+      fi
       for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
         if [[ "$pattern" == *"$forbidden_dir"* ]]; then
           return 1

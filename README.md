@@ -33,7 +33,7 @@ Architect (setup) → Orchestrator runs for each task:
 |-------|-------------|----------|-----------|----------------|
 | **Architect** | Sets up principles, lint rules, task list | Everything | `CLAUDE.md`, agent defs, lint rules, `workflow/tasks.md` | Unrestricted |
 | **Orchestrator** | Spawns agents, manages the loop | Everything | `workflow/tasks.md` + `workflow/state/*` only | Read-only (git log, cat, ls) |
-| **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only | git read-only, read utils |
+| **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, git log (no tests, no lint rules) | `workflow/tasks.md` + its context file only | git read-only, read utils |
 | **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only | npm install/test, node, git read-only |
 | **Coder** | Writes implementation code | Source code, principles | Source code only | npm, npx, node, tsc, mkdir, git read-only |
 | **Reviewer** | Runs tests + lint, commits on PASS | Source code, principles (no tests, no lint rules) | `review-status.txt` + `review-feedback.md` only | npm test, nexum-lint, git add/commit |
