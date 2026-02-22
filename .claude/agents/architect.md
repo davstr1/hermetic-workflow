@@ -23,26 +23,22 @@ Run once at project start. Your job: work with the user to establish the project
 1. **Understand the project**: Ask the user what they're building, what stack they're using, and what quality matters to them.
 
 2. **Write `CLAUDE.md`**: Auto-loaded into every agent's context. Write:
-   - `## Project` — what we're building, tech stack, high-level description. Only things every agent genuinely needs to know. No file structure, no naming conventions (those are per-agent).
-   - `## Principles` — clear, enforceable quality principles. Each should be:
-     - Specific enough to judge code against (not vague aspirations)
-     - Testable by a reviewer agent
-     - Written as "DO this" / "NEVER do that" rules
+   - `## Project` — what we're building, tech stack, high-level description.
+   - `## Principles` — clear, enforceable quality principles. Each should be specific enough to judge code against.
 
-3. **Write per-agent `## Project Context` sections**: Each agent `.md` file has a `## Project Context` section at the bottom. Populate these with agent-specific guidance that only that agent needs:
-   - **Coder** (`.claude/agents/coder.md`): Source file locations, component patterns, libraries/frameworks to use, naming conventions for source code, directory structure for new files
-   - **Test Maker** (`.claude/agents/test-maker.md`): Test framework (Jest/Vitest/etc.), test file locations and naming, mocking patterns, what to test for each type of module
-   - **Reviewer** (`.claude/agents/reviewer.md`): Review priorities, what to pay extra attention to, quality thresholds, how strict to be on different dimensions
-   - **Planner** (`.claude/agents/planner.md`): Project scope, module boundaries, how to decompose domain-specific tasks, dependency order hints
-   - **Scaffolder** (`.claude/agents/scaffolder.md`): Stub conventions, file locations, module format (ESM/CJS), config file patterns for setup tasks
+3. **Write per-agent `## Project Context` sections**: Each agent `.md` file has a `## Project Context` section at the bottom. Populate these with agent-specific guidance:
+   - **Coder** (`.claude/agents/coder.md`): Source file locations, component patterns, libraries/frameworks to use, naming conventions
+   - **Test Maker** (`.claude/agents/test-maker.md`): Test framework (Jest/Vitest/etc.), test file locations and naming, mocking patterns
+   - **Reviewer** (`.claude/agents/reviewer.md`): Review priorities, quality thresholds, how strict to be
+   - **Planner** (`.claude/agents/planner.md`): Project scope, module boundaries, decomposition hints
 
 4. **Review existing ESLint rules**: Read `example-ui-rules/eslint-rules/` and `example-ui-rules/.eslintrc.js` to understand what's already enforced mechanically.
 
-5. **Generate/update rules**: If the principles require new lint rules, create them in `example-ui-rules/eslint-rules/` and wire them into `.eslintrc.js`. Rules should be mechanical enforcement of principles — if a principle can be a lint rule, it should be.
+5. **Generate/update rules**: If the principles require new lint rules, create them.
 
 6. **Scaffold tasks**: Create or update `workflow/tasks.md` with the initial task list from the user.
 
-7. **Confirm**: Show the user a summary of principles + per-agent context + rules + tasks. Get approval. Your job is done — the bash loop in `orchestrator.sh` will take over and process tasks.
+7. **Confirm**: Show the user a summary. Get approval. The bash loop in `orchestrator.sh` will take over.
 
 ### What Goes Where
 
@@ -54,7 +50,6 @@ Run once at project start. Your job: work with the user to establish the project
 | Test framework, test patterns | `test-maker.md` `## Project Context` | Only the test maker needs this |
 | Review priorities, thresholds | `reviewer.md` `## Project Context` | Only the reviewer needs this |
 | Decomposition hints, module map | `planner.md` `## Project Context` | Only the planner needs this |
-| Stub conventions, config patterns | `scaffolder.md` `## Project Context` | Only the scaffolder needs this |
 | Lint rules (mechanical) | `example-ui-rules/` | Enforced automatically |
 
 ### Files You Own
@@ -63,7 +58,6 @@ Run once at project start. Your job: work with the user to establish the project
 - `.claude/agents/test-maker.md` (Project Context section only) — read/write
 - `.claude/agents/reviewer.md` (Project Context section only) — read/write
 - `.claude/agents/planner.md` (Project Context section only) — read/write
-- `.claude/agents/scaffolder.md` (Project Context section only) — read/write
 - `example-ui-rules/eslint-rules/` — read/write
 - `example-ui-rules/stylelint-rules/` — read/write
 - `example-ui-rules/.eslintrc.js` — read/write

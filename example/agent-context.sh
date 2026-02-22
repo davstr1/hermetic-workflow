@@ -29,7 +29,6 @@ patch_context() {
     return
   fi
 
-  # Find the line number of "## Project Context"
   local line_num
   line_num=$(grep -n '^## Project Context' "$file" | head -1 | cut -d: -f1)
 
@@ -38,7 +37,6 @@ patch_context() {
     return
   fi
 
-  # Keep everything before the Project Context section, append new context
   head -n "$((line_num - 1))" "$file" > "${file}.tmp"
   printf '%s\n' "$context" >> "${file}.tmp"
   mv "${file}.tmp" "$file"
@@ -61,15 +59,6 @@ patch_context "$AGENTS_DIR/test-maker.md" "## Project Context
 - File extension: use \`.js\` (not \`.ts\`) — this is a plain JavaScript project with ES modules.
 - Each test file covers one function. Name tests as behavior specs (e.g., \"capitalizes multiple words\")."
 
-# ── Scaffolder ──
-patch_context "$AGENTS_DIR/scaffolder.md" "## Project Context
-
-- Source files go in \`src/\` as ES modules (\`.js\` files with \`export\`).
-- Each stub exports a single named function with the correct signature.
-- Add a JSDoc comment with \`@param\`, \`@returns\`, and \`@example\` on every export.
-- Function bodies: \`throw new Error('Not implemented')\` — nothing else.
-- No dependencies — only use built-in JavaScript features."
-
 # ── Coder ──
 patch_context "$AGENTS_DIR/coder.md" "## Project Context
 
@@ -86,6 +75,6 @@ patch_context "$AGENTS_DIR/reviewer.md" "## Project Context
 - There is no nexum-lint configured for this project — skip the lint step. Only run tests.
 - Check that every exported function has JSDoc with \`@param\`, \`@returns\`, and \`@example\`.
 - Verify edge cases are handled: empty string, null/undefined, boundary values.
-- On PASS: \`git add -A && git commit -m \"feat: <description>\"\`."
+- Verify git history: coder's commit should NOT touch test files."
 
 echo "Agent context patched for example project."
