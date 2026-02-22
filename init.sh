@@ -156,16 +156,28 @@ if [[ ${#MODIFIED_FILES[@]} -gt 0 ]] && git -C "$TARGET" rev-parse --is-inside-w
     relative_files+=("${f#"$TARGET"/}")
   done
 
-  git -C "$TARGET" add "${relative_files[@]}"
+  log "Staging ${#relative_files[@]} files..."
+  if ! git -C "$TARGET" add "${relative_files[@]}" 2>&1; then
+    warn "git add failed — you may need to commit manually."
+  fi
 
   # Only commit if there are staged changes
-  if ! git -C "$TARGET" diff --cached --quiet; then
-    git -C "$TARGET" commit -m "chore: update hermetic workflow to v${VERSION}"
-    git -C "$TARGET" push
-    ok "Committed and pushed workflow update (v${VERSION})."
+  if ! git -C "$TARGET" diff --cached --quiet 2>/dev/null; then
+    if git -C "$TARGET" commit -m "chore: update hermetic workflow to v${VERSION}" 2>&1; then
+      ok "Committed workflow update (v${VERSION})."
+      if git -C "$TARGET" push 2>&1; then
+        ok "Pushed to remote."
+      else
+        warn "Push failed — commit is local. Run 'git push' manually."
+      fi
+    else
+      warn "Commit failed — you may need to commit manually."
+    fi
   else
     log "No changes to commit."
   fi
+elif [[ ${#MODIFIED_FILES[@]} -eq 0 ]]; then
+  log "All files already up to date — nothing to commit."
 fi
 
 # ── Summary ──
