@@ -13,6 +13,7 @@
 #   ./orchestrator.sh                                # Full run
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts (hooks are the real guard)
 #   ./orchestrator.sh --example                       # Run pre-baked smoke-test project in /tmp
+#   ./orchestrator.sh --reset                         # Clean state from interrupted run, then start task loop
 
 set -euo pipefail
 
@@ -33,10 +34,12 @@ warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 # Parse args (before any setup so flags can influence behavior)
 skip_permissions=""
 run_example=""
+run_reset=""
 for arg in "$@"; do
   case "$arg" in
     --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
     --example) run_example="1" ;;
+    --reset) run_reset="1" ;;
   esac
 done
 
@@ -94,6 +97,23 @@ fi
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
 BLOCK_LOG="$STATE_DIR/guard-blocks.log"
+
+# ── Reset mode: clean state from interrupted run ──
+if [[ -n "$run_reset" ]]; then
+  log "Resetting workflow state from interrupted run..."
+
+  # Clean all state files except usage-log.md (persistent across runs)
+  for f in "$STATE_DIR"/*; do
+    [[ ! -f "$f" ]] && continue
+    case "$(basename "$f")" in
+      usage-log.md) ;; # keep
+      *) rm -f "$f"; ok "Removed: $(basename "$f")" ;;
+    esac
+  done
+
+  ok "Workflow state cleaned. Unchecked tasks will restart from Planner."
+  echo ""
+fi
 
 # ── Git repo pre-flight ──
 # If no git repo exists, initialize one and create a private GitHub remote.
