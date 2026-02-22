@@ -273,7 +273,7 @@ check_write() {
     content=$(echo "$INPUT" | jq -r '.tool_input.content // .content // empty' 2>/dev/null)
     content=$(echo "$content" | tr -d '[:space:]')  # strip whitespace/newlines
     case "$content" in
-      orchestrator|architect|planner|test-maker|coder|reviewer)
+      orchestrator|architect|planner|test-maker|coder|reviewer|closer)
         return 0
         ;;
       *)
@@ -332,6 +332,14 @@ check_write() {
       fi
       return 1
       ;;
+    closer)
+      # Closer can only write: usage log and task-complete sentinel
+      if matches_any "$path" \
+        'workflow/state/usage-log.md' 'workflow/state/task-complete'; then
+        return 0
+      fi
+      return 1
+      ;;
   esac
   return 0
 }
@@ -341,8 +349,8 @@ check_glob() {
   local pattern="$1"
 
   case "$CURRENT_AGENT" in
-    orchestrator)
-      # Orchestrator has no Glob access — only Read and Write
+    orchestrator|closer)
+      # Orchestrator and Closer have no Glob access
       return 1
       ;;
     coder)
@@ -445,6 +453,17 @@ check_single_command() {
   case "$CURRENT_AGENT" in
     orchestrator)
       # Orchestrator has no Bash access — only Read and Write via dedicated tools
+      return 1
+      ;;
+    closer)
+      # Closer: read-only commands for finding and parsing transcript JSONL
+      [[ "$cmd" == ls\ * ]] && return 0
+      [[ "$cmd" == grep\ * ]] && return 0
+      [[ "$cmd" == jq\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
       return 1
       ;;
     planner)
