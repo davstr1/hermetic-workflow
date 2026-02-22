@@ -142,6 +142,19 @@ chmod +x "$TARGET/.claude/hooks/session-start.sh"
 # ── Create state directory ──
 mkdir -p "$TARGET/workflow/state"
 
+# ── Ensure workflow state is gitignored ──
+gitignore_file="$TARGET/.gitignore"
+if ! grep -qF 'workflow/state/' "$gitignore_file" 2>/dev/null; then
+  log "Adding workflow state to .gitignore..."
+  {
+    echo ""
+    echo "# Workflow runtime state (generated per-run, never commit)"
+    echo "workflow/state/"
+  } >> "$gitignore_file"
+  MODIFIED_FILES+=("$gitignore_file")
+  ok "Added workflow/state/ to .gitignore"
+fi
+
 # ── Install linter dependencies ──
 if [[ -f "$TARGET/example-ui-rules/package.json" ]]; then
   log "Installing linter dependencies..."

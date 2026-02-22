@@ -1,5 +1,12 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# OS
 .DS_Store
+
+# Workflow runtime state (generated per-run, never commit)
 workflow/state/
 *.log
