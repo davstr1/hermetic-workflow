@@ -94,6 +94,7 @@ copy_always() {
 log "Copying workflow engine..."
 copy_always "$SCRIPT_DIR/.claude/hooks/guard-files.sh"  "$TARGET/.claude/hooks/guard-files.sh"
 copy_always "$SCRIPT_DIR/.claude/hooks/enforce-lint.sh" "$TARGET/.claude/hooks/enforce-lint.sh"
+copy_always "$SCRIPT_DIR/.claude/hooks/session-start.sh" "$TARGET/.claude/hooks/session-start.sh"
 copy_always "$SCRIPT_DIR/.claude/settings.json"         "$TARGET/.claude/settings.json"
 copy_always "$SCRIPT_DIR/orchestrator.sh"               "$TARGET/orchestrator.sh"
 
@@ -136,6 +137,7 @@ fi
 chmod +x "$TARGET/orchestrator.sh"
 chmod +x "$TARGET/.claude/hooks/guard-files.sh"
 chmod +x "$TARGET/.claude/hooks/enforce-lint.sh"
+chmod +x "$TARGET/.claude/hooks/session-start.sh"
 
 # ── Create state directory ──
 mkdir -p "$TARGET/workflow/state"

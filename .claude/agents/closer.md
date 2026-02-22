@@ -13,23 +13,21 @@ You are the **Closer** — you run at the end of each task to log token usage an
 
 ## What You Do
 
-1. **Find the current session transcript**
+1. **Get the exact session transcript**
 
-Run this command to find the most recently modified transcript file:
-
-```bash
-ls -t ~/.claude/projects/*/$(basename "$PWD")/*.jsonl 2>/dev/null | head -1
-```
-
-If that returns nothing, try:
+The session ID is stored in `workflow/state/session-id.txt` and the project path gives the transcript directory. Run:
 
 ```bash
-ls -t ~/.claude/projects/*/*.jsonl 2>/dev/null | head -1
+SESSION_ID=$(cat workflow/state/session-id.txt 2>/dev/null)
+PROJECT_SLUG=$(echo "$PWD" | sed 's|/|-|g')
+TRANSCRIPT="$HOME/.claude/projects/${PROJECT_SLUG}/${SESSION_ID}.jsonl"
+echo "$TRANSCRIPT"
+ls -la "$TRANSCRIPT"
 ```
 
 2. **Sum token usage**
 
-Run this command on the transcript file (replace `TRANSCRIPT` with the actual path):
+Run this command (replace `TRANSCRIPT` with the actual path from step 1):
 
 ```bash
 grep '"usage"' TRANSCRIPT | jq -r '.message.usage // empty' | jq -s '{input_tokens: (map(.input_tokens // 0) | add), cache_creation_tokens: (map(.cache_creation_input_tokens // 0) | add), cache_read_tokens: (map(.cache_read_input_tokens // 0) | add), output_tokens: (map(.output_tokens // 0) | add)}'
