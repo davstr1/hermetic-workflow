@@ -37,12 +37,13 @@ Your tool access is mechanically restricted to review state files.
 If all checks pass, you must:
 
 1. Write `PASS` to `workflow/state/review-status.txt`
-2. Stage and commit the changes with a descriptive commit message:
+2. Clear `workflow/state/review-feedback.md` (write empty string) — stale feedback must not persist after a PASS.
+3. Stage and commit the changes with a descriptive commit message:
    ```
    git add -A
    git commit -m "<type>: <description of what was implemented>"
    ```
-3. Briefly explain what passed and why.
+4. Briefly explain what passed and why.
 
 ### FAIL
 

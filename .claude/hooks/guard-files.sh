@@ -18,10 +18,27 @@
 
 set -euo pipefail
 
+# ── Read tool input once, up front (stdin can only be read once) ──
+INPUT=$(cat)
+TOOL_NAME="${TOOL_NAME:-}"
+
 # ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
 if [[ -z "$CURRENT_AGENT" && -f "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" ]]; then
   CURRENT_AGENT=$(cat "$CLAUDE_PROJECT_DIR/workflow/state/current-agent.txt" 2>/dev/null || echo "")
+fi
+
+# ── Universal block: node_modules is off-limits to ALL agents ──
+nm_path=""
+case "$TOOL_NAME" in
+  Read|Write|Edit) nm_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null) ;;
+  Grep) nm_path=$(echo "$INPUT" | jq -r '.path // empty' 2>/dev/null) ;;
+  Glob) nm_path=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null) ;;
+  Bash) nm_path=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null) ;;
+esac
+if [[ "$nm_path" == *"node_modules"* ]]; then
+  echo "BLOCKED: node_modules/ is off-limits to all agents." >&2
+  exit 2
 fi
 
 # Fully unrestricted agents pass through immediately
@@ -37,13 +54,8 @@ if [[ -z "$CURRENT_AGENT" ]]; then
       exit 2
       ;;
   esac
-  # Allow Read, Glob, Grep so you can at least look around
   exit 0
 fi
-
-# ── Read tool input ──
-INPUT=$(cat)
-TOOL_NAME="${TOOL_NAME:-}"
 
 # ── Path helpers ──
 
