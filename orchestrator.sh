@@ -12,7 +12,8 @@
 # Usage:
 #   ./orchestrator.sh                                # Full run
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts
-#   ./orchestrator.sh --example                       # Run pre-baked smoke-test project in /tmp
+#   ./orchestrator.sh --example                       # List available examples
+#   ./orchestrator.sh --example string-utils          # Run a specific example in /tmp
 #   ./orchestrator.sh --reset                         # Clean state from interrupted run, then start
 
 set -euo pipefail
@@ -35,10 +36,19 @@ warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 skip_permissions=""
 run_example=""
 run_reset=""
-for arg in "$@"; do
-  case "$arg" in
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+  case "${args[$i]}" in
     --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
-    --example) run_example="1" ;;
+    --example)
+      # If next arg exists and doesn't start with --, treat it as the example name
+      if [[ $((i+1)) -lt ${#args[@]} && "${args[$((i+1))]}" != --* ]]; then
+        run_example="${args[$((i+1))]}"
+        ((i++))
+      else
+        run_example="1"
+      fi
+      ;;
     --reset) run_reset="1" ;;
   esac
 done
@@ -46,20 +56,52 @@ done
 # ── Example mode: pre-baked smoke-test project ──
 if [[ -n "$run_example" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  EXAMPLE_DIR="$SCRIPT_DIR/example"
+  EXAMPLES_DIR="$SCRIPT_DIR/examples"
 
+  if [[ ! -d "$EXAMPLES_DIR" ]]; then
+    echo -e "${RED}[orchestrator]${NC} examples/ directory not found in $SCRIPT_DIR" >&2
+    exit 1
+  fi
+
+  # If no name given, list available examples and exit
+  if [[ "$run_example" == "1" ]]; then
+    echo "Available examples:"
+    for d in "$EXAMPLES_DIR"/*/; do
+      [[ -d "$d" ]] || continue
+      name=$(basename "$d")
+      echo "  --example $name"
+    done
+    exit 0
+  fi
+
+  EXAMPLE_DIR="$EXAMPLES_DIR/$run_example"
   if [[ ! -d "$EXAMPLE_DIR" ]]; then
-    echo -e "${RED}[orchestrator]${NC} example/ directory not found in $SCRIPT_DIR" >&2
+    echo -e "${RED}[orchestrator]${NC} Example not found: $run_example" >&2
+    echo "Available examples:" >&2
+    for d in "$EXAMPLES_DIR"/*/; do
+      [[ -d "$d" ]] || continue
+      echo "  --example $(basename "$d")" >&2
+    done
     exit 1
   fi
 
   TEMP_DIR="/tmp/hw-example-$$"
-  log "Example mode: setting up in $TEMP_DIR"
+  log "Example mode ($run_example): setting up in $TEMP_DIR"
 
   mkdir -p "$TEMP_DIR/workflow"
   cp "$EXAMPLE_DIR/CLAUDE.md"         "$TEMP_DIR/CLAUDE.md"
   cp "$EXAMPLE_DIR/package.json"      "$TEMP_DIR/package.json"
   cp -r "$EXAMPLE_DIR/workflow/"      "$TEMP_DIR/workflow/"
+
+  # Copy src/ if it exists (e.g., bugfix example with pre-existing code)
+  if [[ -d "$EXAMPLE_DIR/src" ]]; then
+    cp -r "$EXAMPLE_DIR/src/" "$TEMP_DIR/src/"
+  fi
+
+  # Copy tsconfig.json if it exists (e.g., TypeScript projects)
+  if [[ -f "$EXAMPLE_DIR/tsconfig.json" ]]; then
+    cp "$EXAMPLE_DIR/tsconfig.json" "$TEMP_DIR/tsconfig.json"
+  fi
 
   git -C "$TEMP_DIR" init -q
   git -C "$TEMP_DIR" add -A

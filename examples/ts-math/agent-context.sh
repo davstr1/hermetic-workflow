@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# agent-context.sh — Patches agent .md files with example-specific Project Context.
+# agent-context.sh — Patches agent .md files with ts-math-specific Project Context.
 #
 # Usage:
-#   ./example/agent-context.sh /path/to/project
+#   ./examples/ts-math/agent-context.sh /path/to/project
 #
 # Run AFTER init.sh has copied agent templates into the target project.
-# Replaces the placeholder "## Project Context" sections with concrete guidance
-# for this string-utils example project.
 
 set -euo pipefail
 
@@ -19,7 +17,6 @@ if [[ ! -d "$AGENTS_DIR" ]]; then
 fi
 
 # patch_context <agent-file> <context-text>
-# Replaces everything from "## Project Context" to end-of-file with the new context.
 patch_context() {
   local file="$1"
   local context="$2"
@@ -45,8 +42,9 @@ patch_context() {
 # ── Planner ──
 patch_context "$AGENTS_DIR/planner.md" "## Project Context
 
-- Source files go in \`src/\`. Each module is one file with one named export.
-- Module boundaries: \`capitalize.js\` and \`truncate.js\` are independent — no shared dependencies.
+- Source files go in \`src/\` as \`.ts\` files. Each module is one file with one named export.
+- Module boundaries: \`clamp.ts\` and \`lerp.ts\` are independent — no shared dependencies.
+- This is a TypeScript project — run \`npm run build\` (tsc) before testing.
 - Tasks are already atomic. Each task = one function = one file. Do not decompose further.
 - If a task description matches reality, just update planner-context.md and exit."
 
@@ -54,27 +52,30 @@ patch_context "$AGENTS_DIR/planner.md" "## Project Context
 patch_context "$AGENTS_DIR/test-maker.md" "## Project Context
 
 - Test framework: **vitest** (already in package.json). Use \`import { describe, it, expect } from 'vitest'\`.
-- Test file location: colocated in \`src/\` as \`<module>.test.js\` (e.g., \`src/capitalize.test.js\`).
-- Import the function from the relative path: \`import { capitalize } from './capitalize.js'\`.
-- File extension: use \`.js\` (not \`.ts\`) — this is a plain JavaScript project with ES modules.
-- Each test file covers one function. Name tests as behavior specs (e.g., \"capitalizes multiple words\")."
+- Test file location: colocated in \`src/\` as \`<module>.test.ts\` (e.g., \`src/clamp.test.ts\`).
+- Import the function from the relative path: \`import { clamp } from './clamp.js'\`.
+  Note: use \`.js\` extension in imports (TypeScript ES module resolution).
+- File extension: use \`.ts\` for test files — this is a TypeScript project.
+- Each test file covers one function. Name tests as behavior specs (e.g., \"clamps value to minimum\")."
 
 # ── Coder ──
 patch_context "$AGENTS_DIR/coder.md" "## Project Context
 
-- Source files go in \`src/\` as ES modules (\`.js\` files with \`export\`).
-- Each module exports a single named function (e.g., \`export function capitalize(str)\`).
+- Source files go in \`src/\` as TypeScript modules (\`.ts\` files with \`export\`).
+- Each module exports a single named function with explicit types (e.g., \`export function clamp(value: number, min: number, max: number): number\`).
 - Add a JSDoc comment with \`@param\`, \`@returns\`, and \`@example\` on every export.
-- No dependencies — only use built-in JavaScript features.
-- Handle edge cases: empty strings, null/undefined inputs, boundary values."
+- No dependencies — only use built-in JavaScript/TypeScript features.
+- Handle edge cases: NaN, Infinity, negative values, boundary conditions.
+- Code must pass \`tsc --strict\` — use explicit types, no \`any\`."
 
 # ── Reviewer ──
 patch_context "$AGENTS_DIR/reviewer.md" "## Project Context
 
+- Build with: \`npm run build\` (runs \`tsc\`). Build MUST pass before running tests.
 - Run tests with: \`npm test\` (runs \`vitest run\`).
-- There is no nexum-lint configured for this project — skip the lint step. Only run tests.
+- There is no nexum-lint configured for this project — skip the lint step. Only build + test.
 - Check that every exported function has JSDoc with \`@param\`, \`@returns\`, and \`@example\`.
-- Verify edge cases are handled: empty string, null/undefined, boundary values.
+- Verify edge cases are handled: NaN, Infinity, negative values, boundary conditions.
 - Verify git history: coder's commit should NOT touch test files."
 
-echo "Agent context patched for example project."
+echo "Agent context patched for ts-math example project."
