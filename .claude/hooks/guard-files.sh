@@ -472,6 +472,10 @@ check_single_command() {
       [[ "$cmd" == tail\ * ]] && return 0
       [[ "$cmd" == cat\ * ]] && return 0
       [[ "$cmd" == wc\ * ]] && return 0
+      [[ "$cmd" == date* ]] && return 0   # timestamps
+      [[ "$cmd" == echo\ * ]] && return 0 # variable output
+      [[ "$cmd" == expr\ * ]] && return 0 # arithmetic
+      [[ "$cmd" == sed\ * ]] && return 0  # path slug
       return 1
       ;;
     planner)
@@ -597,9 +601,13 @@ check_bash() {
     # Allow $() in safe contexts: git commit -m "$(cat <<'EOF'...)" (heredoc message)
     if [[ "$CURRENT_AGENT" == "reviewer" && "$full_cmd" == git\ commit* && "$full_cmd" == *'$(cat <<'* ]]; then
       return 0  # safe: reviewer git commit with heredoc message, skip splitting
-    else
-      return 1
     fi
+    # Allow $() for closer — all individual commands are read-only restricted
+    # shell_writes_to_file() already ran on full_cmd above, blocking redirects/rm/cp/mv/etc.
+    if [[ "$CURRENT_AGENT" == "closer" ]]; then
+      return 0
+    fi
+    return 1
   fi
 
   # Split on && || ; | — replace delimiters with newlines, then iterate.
