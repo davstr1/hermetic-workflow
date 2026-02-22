@@ -12,6 +12,7 @@
 # Usage:
 #   ./orchestrator.sh                                # Full run
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts (hooks are the real guard)
+#   ./orchestrator.sh --example                       # Run pre-baked smoke-test project in /tmp
 
 set -euo pipefail
 
@@ -29,34 +30,90 @@ log()  { echo -e "${BLUE}[orchestrator]${NC} $*"; }
 ok()   { echo -e "${GREEN}[orchestrator]${NC} $*"; }
 warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 
+# Parse args (before any setup so flags can influence behavior)
+skip_permissions=""
+run_example=""
+for arg in "$@"; do
+  case "$arg" in
+    --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
+    --example) run_example="1" ;;
+  esac
+done
+
+# ── Example mode: pre-baked smoke-test project ──
+if [[ -n "$run_example" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  EXAMPLE_DIR="$SCRIPT_DIR/example"
+
+  if [[ ! -d "$EXAMPLE_DIR" ]]; then
+    echo -e "${RED}[orchestrator]${NC} example/ directory not found in $SCRIPT_DIR" >&2
+    exit 1
+  fi
+
+  TEMP_DIR="/tmp/hw-example-$$"
+  log "Example mode: setting up in $TEMP_DIR"
+
+  # 1. Create temp dir and copy example files
+  mkdir -p "$TEMP_DIR/workflow"
+  cp "$EXAMPLE_DIR/CLAUDE.md"         "$TEMP_DIR/CLAUDE.md"
+  cp "$EXAMPLE_DIR/package.json"      "$TEMP_DIR/package.json"
+  cp -r "$EXAMPLE_DIR/workflow/"      "$TEMP_DIR/workflow/"
+
+  # 2. Initialize git repo in temp dir (init.sh requires it)
+  git -C "$TEMP_DIR" init -q
+  git -C "$TEMP_DIR" add -A
+  git -C "$TEMP_DIR" commit -q -m "Initial example project"
+
+  # 3. Run init.sh to install hooks, agents, linter
+  log "Running init.sh..."
+  "$SCRIPT_DIR/init.sh" "$TEMP_DIR"
+
+  # 4. Patch agent .md files with example-specific context
+  log "Patching agent context..."
+  "$EXAMPLE_DIR/agent-context.sh" "$TEMP_DIR"
+
+  # 5. Install npm dependencies (vitest)
+  log "Installing project dependencies..."
+  (cd "$TEMP_DIR" && npm install --silent 2>&1)
+  ok "Dependencies installed."
+
+  # 6. Commit the patched state so agents start clean
+  git -C "$TEMP_DIR" add -A
+  git -C "$TEMP_DIR" commit -q -m "chore: apply example agent context"
+
+  # 7. Override project/state dirs — fall through to normal task loop
+  PROJECT_DIR="$TEMP_DIR"
+  STATE_DIR="$TEMP_DIR/workflow/state"
+  mkdir -p "$STATE_DIR"
+  BLOCK_LOG="$STATE_DIR/guard-blocks.log"
+
+  ok "Example project ready at $TEMP_DIR"
+  echo ""
+fi
+
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
 BLOCK_LOG="$STATE_DIR/guard-blocks.log"
 
 # ── Git repo pre-flight ──
 # If no git repo exists, initialize one and create a private GitHub remote.
-if ! git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
-  log "No git repo found — initializing..."
-  git -C "$PROJECT_DIR" init
-  git -C "$PROJECT_DIR" add -A
-  git -C "$PROJECT_DIR" commit -m "Initial commit"
-  ok "Git repo initialized."
-fi
+# (Skipped in example mode — temp dir already has a git repo)
+if [[ -z "$run_example" ]]; then
+  if ! git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
+    log "No git repo found — initializing..."
+    git -C "$PROJECT_DIR" init
+    git -C "$PROJECT_DIR" add -A
+    git -C "$PROJECT_DIR" commit -m "Initial commit"
+    ok "Git repo initialized."
+  fi
 
-if ! git -C "$PROJECT_DIR" remote get-url origin &>/dev/null; then
-  log "No GitHub remote — creating private repo..."
-  repo_name=$(basename "$PROJECT_DIR")
-  gh repo create "$repo_name" --private --source "$PROJECT_DIR" --push
-  ok "Private repo created and pushed: $repo_name"
+  if ! git -C "$PROJECT_DIR" remote get-url origin &>/dev/null; then
+    log "No GitHub remote — creating private repo..."
+    repo_name=$(basename "$PROJECT_DIR")
+    gh repo create "$repo_name" --private --source "$PROJECT_DIR" --push
+    ok "Private repo created and pushed: $repo_name"
+  fi
 fi
-
-# Parse args
-skip_permissions=""
-for arg in "$@"; do
-  case "$arg" in
-    --dangerously-skip-permissions) skip_permissions="--dangerously-skip-permissions" ;;
-  esac
-done
 
 # ── Setup check ──
 # If no tasks exist, run the architect for interactive setup.
@@ -65,7 +122,7 @@ if ! grep -q '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; then
   echo ""
 
   echo "architect" > "$STATE_DIR/current-agent.txt"
-  claude --agent architect $skip_permissions || true
+  (cd "$PROJECT_DIR" && claude --agent architect $skip_permissions) || true
 fi
 
 # ── Task loop: one task per session, fresh context ──
@@ -92,10 +149,10 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   rm -f "$SENTINEL"
   date +%s > "$STATE_DIR/task-start-time.txt"
 
-  # Launch orchestrator in background
+  # Launch orchestrator in background (from PROJECT_DIR so claude resolves agents correctly)
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
   echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." \
-    | claude --agent orchestrator $skip_permissions &
+    | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) &
   CLAUDE_PID=$!
 
   # Watch for sentinel — kill session when task is done
