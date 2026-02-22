@@ -32,7 +32,7 @@ if [ ! -f "$TASKS_FILE" ]; then
   exit 0
 fi
 
-REMAINING=$(grep -c '^\- \[ \]' "$TASKS_FILE" 2>/dev/null || echo "0")
+REMAINING=$(grep -c '^\- \[ \]' "$TASKS_FILE" 2>/dev/null) || REMAINING=0
 
 if [ "$REMAINING" -eq 0 ]; then
   exit 0

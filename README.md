@@ -31,8 +31,8 @@ Architect (setup) → Orchestrator runs for each task:
 
 | Agent | What it does | Can read | Can write | Bash allowlist |
 |-------|-------------|----------|-----------|----------------|
-| **Architect** | Sets up principles, lint rules, task list | Everything | Everything | Unrestricted |
-| **Orchestrator** | Spawns agents, manages the loop | Everything | Everything | Unrestricted |
+| **Architect** | Sets up principles, lint rules, task list | Everything | `CLAUDE.md`, agent defs, lint rules, `workflow/tasks.md` | Unrestricted |
+| **Orchestrator** | Spawns agents, manages the loop | Everything | `workflow/tasks.md` + `workflow/state/*` only | Read-only (git log, cat, ls) |
 | **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only | git read-only, read utils |
 | **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only | npm install/test, node, git read-only |
 | **Coder** | Writes implementation code | Source code, principles | Source code only | npm, npx, node, tsc, mkdir, git read-only |
@@ -87,6 +87,22 @@ Edit `workflow/tasks.md`:
 
 Or let the Architect create them during setup.
 
+## Updating an Existing Project
+
+Re-run the same install command from your project directory:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/davstr1/hermetic-workflow/main/setup-remote.sh | bash
+```
+
+Or from a local clone:
+
+```bash
+/path/to/hermetic-workflow/init.sh /path/to/your-project
+```
+
+This overwrites the workflow engine (hooks, agents, settings, orchestrator.sh) but preserves your project-specific files (`CLAUDE.md`, `workflow/tasks.md`, `example-ui-rules/`). Your Architect-written principles, task list, and lint rules stay intact.
+
 ## What Gets Installed
 
 ```
@@ -101,7 +117,8 @@ your-project/
 │   │   └── reviewer.md
 │   ├── hooks/
 │   │   ├── guard-files.sh    # PreToolUse: hermetic access control + block logging
-│   │   └── enforce-lint.sh   # PostToolUse: runs lint + tests after coder writes
+│   │   ├── enforce-lint.sh   # PostToolUse: runs lint + tests after coder writes
+│   │   └── stop-loop.sh      # Stop hook: keeps orchestrator looping until all tasks done
 │   └── settings.json         # Hook configuration
 ├── example-ui-rules/         # ESLint/Stylelint rules + nexum-lint
 ├── workflow/

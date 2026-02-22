@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 # orchestrator.sh — Launches the hermetic TDD workflow.
 #
-# Runs two phases:
-#   1. Architect agent (interactive setup, runs once)
-#   2. Orchestrator agent (processes all tasks via Ralph Wiggum loop)
+# Default: runs the Architect agent, which does interactive setup
+# then spawns the Orchestrator as a subagent to process all tasks.
 #
-# Prerequisites:
-#   Install the Ralph Wiggum plugin in Claude Code:
-#     /plugin marketplace add anthropics/claude-code
-#     /plugin install ralph-wiggum@anthropics-claude-code
+# --skip-setup: skip the Architect and run the Orchestrator directly.
 #
 # Usage:
-#   ./orchestrator.sh                        # Full run (setup + loop)
-#   ./orchestrator.sh --skip-setup           # Skip architect setup, go straight to loop
+#   ./orchestrator.sh                        # Full run (architect → orchestrator)
+#   ./orchestrator.sh --skip-setup           # Skip architect, go straight to loop
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts (hooks are the real guard)
 
 set -euo pipefail
@@ -23,15 +19,30 @@ STATE_DIR="$PROJECT_DIR/workflow/state"
 # Colors
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m'
 
 log()  { echo -e "${BLUE}[orchestrator]${NC} $*"; }
 ok()   { echo -e "${GREEN}[orchestrator]${NC} $*"; }
-warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
+
+# ── Git repo pre-flight ──
+# If no git repo exists, initialize one and create a private GitHub remote.
+if ! git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
+  log "No git repo found — initializing..."
+  git -C "$PROJECT_DIR" init
+  git -C "$PROJECT_DIR" add -A
+  git -C "$PROJECT_DIR" commit -m "Initial commit"
+  ok "Git repo initialized."
+fi
+
+if ! git -C "$PROJECT_DIR" remote get-url origin &>/dev/null; then
+  log "No GitHub remote — creating private repo..."
+  repo_name=$(basename "$PROJECT_DIR")
+  gh repo create "$repo_name" --private --source "$PROJECT_DIR" --push
+  ok "Private repo created and pushed: $repo_name"
+fi
 
 # Parse args
 skip_setup=false
@@ -43,40 +54,19 @@ for arg in "$@"; do
   esac
 done
 
-# Phase 1: Setup (Architect agent — interactive)
 if [[ "$skip_setup" == false ]]; then
-  log "═══════════════════════════════════════════════════"
-  log "  SETUP PHASE — Architect Agent (Interactive)"
-  log "═══════════════════════════════════════════════════"
-  echo ""
-  log "The Architect will set up CLAUDE.md, per-agent context,"
-  log "lint rules, and the task list."
+  log "Starting Architect (interactive setup → orchestrator handoff)"
   echo ""
 
-  # Set agent identity BEFORE launching Claude so guards apply from the first tool call
   echo "architect" > "$STATE_DIR/current-agent.txt"
-
   claude --agent architect $skip_permissions
 
-  ok "Setup complete. Project context and tasks are ready."
-  echo ""
 else
-  log "Skipping setup (--skip-setup)."
+  log "Skipping setup — launching Orchestrator directly"
+  echo ""
+
+  echo "orchestrator" > "$STATE_DIR/current-agent.txt"
+  claude --agent orchestrator $skip_permissions
 fi
-
-# Phase 2: The Loop (Orchestrator agent — processes all tasks)
-log "═══════════════════════════════════════════════════"
-log "  LOOP PHASE — Orchestrator Agent (Ralph Wiggum)"
-log "═══════════════════════════════════════════════════"
-echo ""
-log "The orchestrator will process all tasks from workflow/tasks.md."
-log "It runs inside a Ralph Wiggum loop until all tasks are complete."
-log "You will be consulted if escalation is needed."
-echo ""
-
-# Set agent identity BEFORE launching Claude so guards apply from the first tool call
-echo "orchestrator" > "$STATE_DIR/current-agent.txt"
-
-claude --agent orchestrator $skip_permissions
 
 ok "Workflow complete."

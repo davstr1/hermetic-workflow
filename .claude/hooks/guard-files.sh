@@ -8,8 +8,8 @@
 #   1. HERMETIC_AGENT env var (legacy: set by orchestrator.sh)
 #   2. workflow/state/current-agent.txt (native: written by orchestrator agent)
 #
-# Unrestricted agents: architect
-# Restricted agents: orchestrator, planner, test-maker, coder, reviewer
+# All agents are restricted to their owned files.
+# Restricted agents: architect, orchestrator, planner, test-maker, coder, reviewer
 # Unknown/empty: reads allowed, all writes blocked
 #
 # Exit codes:
@@ -41,10 +41,34 @@ if [[ "$nm_path" == *"node_modules"* ]]; then
   exit 2
 fi
 
-# Fully unrestricted agents pass through immediately
-case "$CURRENT_AGENT" in
-  architect) exit 0 ;;
-esac
+# Architect: unrestricted reads/glob/grep, restricted writes and bash
+if [[ "$CURRENT_AGENT" == "architect" ]]; then
+  case "$TOOL_NAME" in
+    Write|Edit)
+      local file_path
+      file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
+      file_path=$(rel_path "$file_path")
+      if matches_any "$file_path" \
+        'CLAUDE.md' \
+        '.claude/agents/*' \
+        'example-ui-rules/*' \
+        'workflow/tasks.md' 'workflow/state/*'; then
+        exit 0
+      fi
+      echo "BLOCKED: architect cannot write to '$file_path'. Only CLAUDE.md, agent defs, lint rules, and tasks." >&2
+      log_block "architect | ${TOOL_NAME} | $file_path"
+      exit 2
+      ;;
+    Bash)
+      # Architect gets unrestricted bash for npm install, lint setup, etc.
+      exit 0
+      ;;
+    *)
+      # Reads, Glob, Grep — unrestricted
+      exit 0
+      ;;
+  esac
+fi
 
 # Unknown/empty agent — block all writes, allow reads
 if [[ -z "$CURRENT_AGENT" ]]; then
