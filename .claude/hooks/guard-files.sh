@@ -91,11 +91,15 @@ fi
 
 # ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
+IN_WORKFLOW=false
 if [[ -z "$CURRENT_AGENT" ]]; then
   local_state="${CLAUDE_PROJECT_DIR:-}/workflow/state/current-agent.txt"
   if [[ -f "$local_state" ]]; then
+    IN_WORKFLOW=true
     CURRENT_AGENT=$(cat "$local_state" 2>/dev/null || echo "")
   fi
+else
+  IN_WORKFLOW=true
 fi
 
 # ── Debug trace — logs EVERY hook invocation ──
@@ -152,9 +156,25 @@ if [[ "$CURRENT_AGENT" == "architect" ]]; then
   esac
 fi
 
-# Unknown/empty agent — not in workflow mode, allow everything
+# Unknown/empty agent
 if [[ -z "$CURRENT_AGENT" ]]; then
-  exit 0
+  if [[ "$IN_WORKFLOW" == true ]]; then
+    # current-agent.txt exists but is empty — likely a bypass attempt.
+    # Block writes, allow reads.
+    case "$TOOL_NAME" in
+      Write|Edit|Bash)
+        echo "BLOCKED: agent identity is empty but workflow is active. Cannot write without a valid agent identity." >&2
+        log_block "EMPTY_AGENT | ${TOOL_NAME} | bypass attempt"
+        exit 2
+        ;;
+      *)
+        exit 0
+        ;;
+    esac
+  else
+    # No current-agent.txt file at all — not in workflow mode, allow everything
+    exit 0
+  fi
 fi
 
 # ── Per-agent READ restrictions ──
@@ -246,9 +266,21 @@ check_write() {
 
   # current-agent.txt is a coordination file — the orchestrator must update it
   # between every Task() spawn, even when the guard thinks a subagent is active.
-  # Allow ALL agents to write it so the orchestrator is never locked out.
+  # Allow ALL agents to write it, but ONLY with valid agent names.
+  # This prevents agents from clearing it to get empty-agent (allow-all) bypass.
   if [[ "$path" == "workflow/state/current-agent.txt" ]]; then
-    return 0
+    local content
+    content=$(echo "$INPUT" | jq -r '.tool_input.content // .content // empty' 2>/dev/null)
+    content=$(echo "$content" | tr -d '[:space:]')  # strip whitespace/newlines
+    case "$content" in
+      orchestrator|architect|planner|test-maker|coder|reviewer)
+        return 0
+        ;;
+      *)
+        BLOCK_REASON="Only valid agent names can be written to current-agent.txt."
+        return 1
+        ;;
+    esac
   fi
 
   case "$CURRENT_AGENT" in
