@@ -166,7 +166,12 @@ check_read() {
       fi
       ;;
     reviewer)
-      # Reviewer can read everything — needs full visibility to judge
+      # Reviewer cannot read test source files — it works from test OUTPUT only.
+      # Reading tests would let it leak test logic to the coder via feedback.
+      if matches_any "$path" \
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        return 1
+      fi
       ;;
   esac
   return 0
@@ -264,7 +269,10 @@ check_glob() {
       done
       ;;
     reviewer)
-      # Reviewer can glob anything (needs full visibility)
+      # Reviewer cannot glob test files
+      if [[ "$pattern" == *".test."* || "$pattern" == *".spec."* || "$pattern" == *"__tests__"* || "$pattern" == *"tests/"* ]]; then
+        return 1
+      fi
       ;;
   esac
   return 0

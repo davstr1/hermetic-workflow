@@ -10,7 +10,7 @@ Hermetic isolation fixes this for every agent:
 
 - The **coder** sees task descriptions and principles, but never the tests or rules
 - The **test-maker** can only write test files — it can't touch source code
-- The **reviewer** can read everything but can only write its verdict files — it can't "fix" code
+- The **reviewer** runs tests and lint but can't read test source — it judges from output only
 - The **planner** can only write task files — it can't write code or tests
 - All of this is enforced by [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks), not by instructions agents can ignore
 
@@ -36,7 +36,7 @@ Architect (setup) → Orchestrator runs for each task:
 | **Planner** | Checks task atomicity, decomposes if needed | Tasks, source, tests, git log | `workflow/tasks.md` + its context file only | git read-only, read utils |
 | **Test Maker** | Writes tests before implementation | Source code, tests, principles | Test files only | npm install/test, node, git read-only |
 | **Coder** | Writes implementation code | Source code, principles | Source code only | npm, npx, node, tsc, mkdir, git read-only |
-| **Reviewer** | Runs tests + lint, commits on PASS | Everything | `review-status.txt` + `review-feedback.md` only | npm test, nexum-lint, git add/commit |
+| **Reviewer** | Runs tests + lint, commits on PASS | Source code, principles, lint rules (no tests) | `review-status.txt` + `review-feedback.md` only | npm test, nexum-lint, git add/commit |
 
 Every restriction is enforced by a `PreToolUse` hook that intercepts every file read/write/glob/grep/bash call and blocks forbidden paths. Bash commands are **allowlisted per agent** — shell-based file writes, subshells, and eval are blocked for all restricted agents, and compound commands are split and validated individually. A `PostToolUse` hook runs lint and tests after every file the coder writes, showing error output without revealing the rule or test source code.
 
