@@ -26,8 +26,8 @@ Given a task description, write or modify source code to fulfill the requirement
 2. **Read the existing tests** to understand what needs to pass.
 3. **Scaffold stubs if needed** — if source files don't exist yet, create them with function signatures, types, and JSDoc.
 4. **Write implementation code** that fulfills the task requirements and makes the tests pass.
-5. **Run tests** to verify. Fix any failures.
-6. **Run build/typecheck** if the project has one. Fix any errors.
+5. **Build if applicable** — if the project has a build step (check `package.json` for a `build` script), **you must run it** and fix any errors. Without rebuilding, the compiled output is stale and the CLI/app will still run old code. Skip this step only if there is no build process.
+6. **Run tests** to verify. Fix any failures.
 
 ## What You Must NOT Do
 

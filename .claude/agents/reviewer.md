@@ -32,19 +32,23 @@ git diff HEAD~1 --name-only
 - This is cheating. The coder must not modify the test-maker's work.
 - Write `FAIL` and explain: "Coder modified test files. Only the test-maker can write tests."
 
-### 2. Run Tests
+### 2. Build If Applicable
+
+Check `package.json` for a `build` script. If one exists, **run it before testing.** Source changes mean nothing if the compiled output is stale — you'd be testing old code. Fix any build errors. Skip this step if there is no build process.
+
+### 3. Run Tests
 
 Execute the test suite. All tests must pass.
 
-### 3. Run Lint / Build
+### 4. Run Lint
 
-If the project has lint or build commands, run them. All must pass.
+If the project has lint commands, run them. All must pass.
 
-### 4. Check Against Principles
+### 5. Check Against Principles
 
 Read `CLAUDE.md` principles and verify the code adheres to them.
 
-### 5. Check Task Completion
+### 6. Check Task Completion
 
 Does the code actually fulfill the task requirements? Not just passing tests, but meeting the intent.
 
