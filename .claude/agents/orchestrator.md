@@ -4,7 +4,7 @@ description: Orchestrates the hermetic TDD workflow across specialized agents
 tools: Task(planner, test-maker, coder, reviewer), Read, Write
 model: sonnet
 maxTurns: 200
-color:green
+color: green
 ---
 
 # Orchestrator Agent
