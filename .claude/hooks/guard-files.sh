@@ -166,10 +166,12 @@ check_read() {
       fi
       ;;
     reviewer)
-      # Reviewer cannot read test source files — it works from test OUTPUT only.
-      # Reading tests would let it leak test logic to the coder via feedback.
+      # Reviewer works from test/lint OUTPUT only — cannot read source files for either.
       if matches_any "$path" \
-        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
+        '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
+        'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
+        'example-ui-rules/bin/*' 'example-ui-rules/.eslintrc*' \
+        'eslint-config.*' '.eslintrc*' 'stylelint.config.*'; then
         return 1
       fi
       ;;
@@ -269,10 +271,15 @@ check_glob() {
       done
       ;;
     reviewer)
-      # Reviewer cannot glob test files
+      # Reviewer cannot glob test files or lint rules
       if [[ "$pattern" == *".test."* || "$pattern" == *".spec."* || "$pattern" == *"__tests__"* || "$pattern" == *"tests/"* ]]; then
         return 1
       fi
+      for forbidden_dir in "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin"; do
+        if [[ "$pattern" == *"$forbidden_dir"* ]]; then
+          return 1
+        fi
+      done
       ;;
   esac
   return 0
