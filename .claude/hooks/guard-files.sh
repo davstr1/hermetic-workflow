@@ -80,8 +80,14 @@ log_block() {
 
 # ── Read tool input once, up front (stdin can only be read once) ──
 INPUT=$(cat)
-TOOL_NAME="${TOOL_NAME:-}"
 BLOCK_REASON=""
+
+# Extract tool name from JSON stdin (Claude Code passes it in the JSON payload, NOT as an env var)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
+if [[ -z "$TOOL_NAME" ]]; then
+  # Fallback: check env var (in case Claude Code version sets it)
+  TOOL_NAME="${TOOL_NAME:-}"
+fi
 
 # ── Identify current agent ──
 CURRENT_AGENT="${HERMETIC_AGENT:-}"
@@ -95,16 +101,23 @@ fi
 # ── Debug trace — logs EVERY hook invocation ──
 TRACE_LOG="${CLAUDE_PROJECT_DIR:-/tmp}/workflow/state/guard-trace.log"
 {
-  echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME} project_dir=${CLAUDE_PROJECT_DIR:-UNSET}"
+  trace_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.pattern // .tool_input.path // empty' 2>/dev/null | head -c 120)
+  echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME:-EMPTY} path=${trace_path}"
 } >> "$TRACE_LOG" 2>/dev/null || true
+
+# Dump first raw JSON for structure debugging (one-time)
+DEBUG_DUMP="${CLAUDE_PROJECT_DIR:-/tmp}/workflow/state/guard-debug-input.json"
+if [[ ! -f "$DEBUG_DUMP" ]]; then
+  echo "$INPUT" | jq '.' > "$DEBUG_DUMP" 2>/dev/null || echo "$INPUT" > "$DEBUG_DUMP"
+fi
 
 # ── Universal block: node_modules is off-limits to ALL agents ──
 nm_path=""
 case "$TOOL_NAME" in
-  Read|Write|Edit) nm_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null) ;;
-  Grep) nm_path=$(echo "$INPUT" | jq -r '.path // empty' 2>/dev/null) ;;
-  Glob) nm_path=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null) ;;
-  Bash) nm_path=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null) ;;
+  Read|Write|Edit) nm_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .file_path // empty' 2>/dev/null) ;;
+  Grep) nm_path=$(echo "$INPUT" | jq -r '.tool_input.path // .path // empty' 2>/dev/null) ;;
+  Glob) nm_path=$(echo "$INPUT" | jq -r '.tool_input.pattern // .pattern // empty' 2>/dev/null) ;;
+  Bash) nm_path=$(echo "$INPUT" | jq -r '.tool_input.command // .command // empty' 2>/dev/null) ;;
 esac
 if [[ "${nm_path:-}" == *"node_modules"* ]]; then
   echo "BLOCKED: node_modules/ is off-limits to all agents." >&2
@@ -115,7 +128,7 @@ fi
 if [[ "$CURRENT_AGENT" == "architect" ]]; then
   case "$TOOL_NAME" in
     Write|Edit)
-      file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
+      file_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .file_path // empty' 2>/dev/null)
       file_path=$(rel_path "$file_path")
       if matches_any "$file_path" \
         'CLAUDE.md' \
@@ -139,14 +152,8 @@ if [[ "$CURRENT_AGENT" == "architect" ]]; then
   esac
 fi
 
-# Unknown/empty agent — block all writes, allow reads
+# Unknown/empty agent — not in workflow mode, allow everything
 if [[ -z "$CURRENT_AGENT" ]]; then
-  case "$TOOL_NAME" in
-    Write|Edit|Bash)
-      echo "BLOCKED: No agent identity set. Run the workflow via ./orchestrator.sh or set current-agent.txt." >&2
-      exit 2
-      ;;
-  esac
   exit 0
 fi
 
@@ -556,7 +563,7 @@ extract_and_check() {
   case "$TOOL_NAME" in
     Read)
       local file_path
-      file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
+      file_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
         BLOCK_REASON=""
@@ -572,7 +579,7 @@ extract_and_check() {
 
     Write|Edit)
       local file_path
-      file_path=$(echo "$INPUT" | jq -r '.file_path // empty' 2>/dev/null)
+      file_path=$(echo "$INPUT" | jq -r '.tool_input.file_path // .file_path // empty' 2>/dev/null)
       if [[ -n "$file_path" ]]; then
         file_path=$(rel_path "$file_path")
         BLOCK_REASON=""
@@ -588,7 +595,7 @@ extract_and_check() {
 
     Glob)
       local pattern
-      pattern=$(echo "$INPUT" | jq -r '.pattern // empty' 2>/dev/null)
+      pattern=$(echo "$INPUT" | jq -r '.tool_input.pattern // .pattern // empty' 2>/dev/null)
       if [[ -n "$pattern" ]]; then
         BLOCK_REASON=""
         if ! check_glob "$pattern"; then
@@ -603,7 +610,7 @@ extract_and_check() {
 
     Grep)
       local path
-      path=$(echo "$INPUT" | jq -r '.path // empty' 2>/dev/null)
+      path=$(echo "$INPUT" | jq -r '.tool_input.path // .path // empty' 2>/dev/null)
       if [[ -n "$path" ]]; then
         path=$(rel_path "$path")
         BLOCK_REASON=""
@@ -616,7 +623,7 @@ extract_and_check() {
         fi
       fi
       local glob
-      glob=$(echo "$INPUT" | jq -r '.glob // empty' 2>/dev/null)
+      glob=$(echo "$INPUT" | jq -r '.tool_input.glob // .glob // empty' 2>/dev/null)
       if [[ -n "$glob" ]]; then
         BLOCK_REASON=""
         if ! check_glob "$glob"; then
@@ -631,7 +638,7 @@ extract_and_check() {
 
     Bash)
       local command
-      command=$(echo "$INPUT" | jq -r '.command // empty' 2>/dev/null)
+      command=$(echo "$INPUT" | jq -r '.tool_input.command // .command // empty' 2>/dev/null)
       if [[ -n "$command" ]]; then
         BLOCK_REASON=""
         if ! check_bash "$command"; then
