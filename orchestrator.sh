@@ -21,13 +21,17 @@ STATE_DIR="$PROJECT_DIR/workflow/state"
 # Colors
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 log()  { echo -e "${BLUE}[orchestrator]${NC} $*"; }
 ok()   { echo -e "${GREEN}[orchestrator]${NC} $*"; }
+warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 
 # Ensure state directory exists
 mkdir -p "$STATE_DIR"
+BLOCK_LOG="$STATE_DIR/guard-blocks.log"
 
 # ── Git repo pre-flight ──
 # If no git repo exists, initialize one and create a private GitHub remote.
@@ -68,12 +72,44 @@ fi
 log "Starting task loop..."
 echo ""
 
+# Clear block log before starting
+> "$BLOCK_LOG" 2>/dev/null || true
+
 while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
   log "Tasks remaining: $remaining"
 
+  # Track blocks from this session
+  blocks_before=0
+  if [[ -f "$BLOCK_LOG" ]]; then
+    blocks_before=$(wc -l < "$BLOCK_LOG" 2>/dev/null || echo "0")
+  fi
+
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
   echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." | claude --agent orchestrator $skip_permissions || true
+
+  # Report blocks from this session
+  if [[ -f "$BLOCK_LOG" ]]; then
+    blocks_after=$(wc -l < "$BLOCK_LOG" 2>/dev/null || echo "0")
+    new_blocks=$((blocks_after - blocks_before))
+    if [[ $new_blocks -gt 0 ]]; then
+      echo ""
+      warn "═══ Guard blocked $new_blocks tool calls during this task ═══"
+      tail -n "$new_blocks" "$BLOCK_LOG" | while IFS= read -r line; do
+        echo -e "  ${RED}✗${NC} $line"
+      done
+      echo ""
+    fi
+  fi
 done
+
+# Final summary
+if [[ -f "$BLOCK_LOG" ]] && [[ -s "$BLOCK_LOG" ]]; then
+  total_blocks=$(wc -l < "$BLOCK_LOG" 2>/dev/null || echo "0")
+  echo ""
+  warn "═══ Total guard blocks across all tasks: $total_blocks ═══"
+  warn "Full log: $BLOCK_LOG"
+  echo ""
+fi
 
 ok "All tasks complete. Workflow finished."
