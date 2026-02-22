@@ -92,6 +92,12 @@ if [[ -z "$CURRENT_AGENT" ]]; then
   fi
 fi
 
+# ── Debug trace — logs EVERY hook invocation ──
+TRACE_LOG="${CLAUDE_PROJECT_DIR:-/tmp}/workflow/state/guard-trace.log"
+{
+  echo "[$(date '+%H:%M:%S')] agent=${CURRENT_AGENT:-EMPTY} tool=${TOOL_NAME} project_dir=${CLAUDE_PROJECT_DIR:-UNSET}"
+} >> "$TRACE_LOG" 2>/dev/null || true
+
 # ── Universal block: node_modules is off-limits to ALL agents ──
 nm_path=""
 case "$TOOL_NAME" in
