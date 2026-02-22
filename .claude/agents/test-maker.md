@@ -1,7 +1,7 @@
 ---
 name: test-maker
 description: "Writes test files from task descriptions before implementation, then commits"
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 model: sonnet
 color: yellow
 ---

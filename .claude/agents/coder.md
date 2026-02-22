@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Scaffolds stubs and writes implementation code to make tests pass, then commits.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 model: sonnet
 maxTurns: 50
 color: blue

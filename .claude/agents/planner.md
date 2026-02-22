@@ -1,7 +1,7 @@
 ---
 name: planner
 description: "Adapts upcoming tasks to reality, then checks atomicity and decomposes if needed"
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 model: sonnet
 color: purple
 ---

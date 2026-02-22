@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: "Runs tests, verifies git history for cheating, commits on PASS."
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 model: sonnet
 color: orange
 ---
