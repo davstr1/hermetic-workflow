@@ -34,6 +34,7 @@ Run once at project start. Your job: work with the user to establish the project
    - **Test Maker** (`.claude/agents/test-maker.md`): Test framework (Jest/Vitest/etc.), test file locations and naming, mocking patterns, what to test for each type of module
    - **Reviewer** (`.claude/agents/reviewer.md`): Review priorities, what to pay extra attention to, quality thresholds, how strict to be on different dimensions
    - **Planner** (`.claude/agents/planner.md`): Project scope, module boundaries, how to decompose domain-specific tasks, dependency order hints
+   - **Scaffolder** (`.claude/agents/scaffolder.md`): Stub conventions, file locations, module format (ESM/CJS), config file patterns for setup tasks
 
 4. **Review existing ESLint rules**: Read `example-ui-rules/eslint-rules/` and `example-ui-rules/.eslintrc.js` to understand what's already enforced mechanically.
 
@@ -53,6 +54,7 @@ Run once at project start. Your job: work with the user to establish the project
 | Test framework, test patterns | `test-maker.md` `## Project Context` | Only the test maker needs this |
 | Review priorities, thresholds | `reviewer.md` `## Project Context` | Only the reviewer needs this |
 | Decomposition hints, module map | `planner.md` `## Project Context` | Only the planner needs this |
+| Stub conventions, config patterns | `scaffolder.md` `## Project Context` | Only the scaffolder needs this |
 | Lint rules (mechanical) | `example-ui-rules/` | Enforced automatically |
 
 ### Files You Own
@@ -61,6 +63,7 @@ Run once at project start. Your job: work with the user to establish the project
 - `.claude/agents/test-maker.md` (Project Context section only) — read/write
 - `.claude/agents/reviewer.md` (Project Context section only) — read/write
 - `.claude/agents/planner.md` (Project Context section only) — read/write
+- `.claude/agents/scaffolder.md` (Project Context section only) — read/write
 - `example-ui-rules/eslint-rules/` — read/write
 - `example-ui-rules/stylelint-rules/` — read/write
 - `example-ui-rules/.eslintrc.js` — read/write

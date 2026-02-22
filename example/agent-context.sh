@@ -61,6 +61,15 @@ patch_context "$AGENTS_DIR/test-maker.md" "## Project Context
 - File extension: use \`.js\` (not \`.ts\`) — this is a plain JavaScript project with ES modules.
 - Each test file covers one function. Name tests as behavior specs (e.g., \"capitalizes multiple words\")."
 
+# ── Scaffolder ──
+patch_context "$AGENTS_DIR/scaffolder.md" "## Project Context
+
+- Source files go in \`src/\` as ES modules (\`.js\` files with \`export\`).
+- Each stub exports a single named function with the correct signature.
+- Add a JSDoc comment with \`@param\`, \`@returns\`, and \`@example\` on every export.
+- Function bodies: \`throw new Error('Not implemented')\` — nothing else.
+- No dependencies — only use built-in JavaScript features."
+
 # ── Coder ──
 patch_context "$AGENTS_DIR/coder.md" "## Project Context
 

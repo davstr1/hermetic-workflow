@@ -194,21 +194,21 @@ check_read() {
     orchestrator)
       # Orchestrator: unrestricted reads for workflow state, tasks, agent defs
       ;;
-    coder)
-      # Coder cannot read: tests, lint rules, agent defs, review state
+    coder|scaffolder)
+      # Coder/Scaffolder cannot read: tests, lint rules, agent defs, review state
       if matches_any "$path" '*.test.*' '*.spec.*' '__tests__/*' 'tests/*'; then
-        BLOCK_REASON="Test files are hidden from the coder. Write code that fulfills the task description — tests are the test-maker's job."
+        BLOCK_REASON="Test files are hidden from the ${CURRENT_AGENT}. Write code that fulfills the task description — tests are the test-maker's job."
         return 1
       fi
       if matches_any "$path" \
         'example-ui-rules/eslint-rules/*' 'example-ui-rules/stylelint-rules/*' \
         'example-ui-rules/bin/*' 'example-ui-rules/.eslintrc*' \
         'eslint-config.*' '.eslintrc*' 'stylelint.config.*'; then
-        BLOCK_REASON="Lint rules are hidden from the coder. Fix lint errors using only the error messages shown after writes."
+        BLOCK_REASON="Lint rules are hidden from the ${CURRENT_AGENT}."
         return 1
       fi
       if matches_any "$path" '.claude/agents/*'; then
-        BLOCK_REASON="Agent definitions are off-limits to the coder."
+        BLOCK_REASON="Agent definitions are off-limits to the ${CURRENT_AGENT}."
         return 1
       fi
       if matches_any "$path" \
@@ -281,7 +281,7 @@ check_write() {
     content=$(echo "$INPUT" | jq -r '.tool_input.content // .content // empty' 2>/dev/null)
     content=$(echo "$content" | tr -d '[:space:]')  # strip whitespace/newlines
     case "$content" in
-      orchestrator|architect|planner|test-maker|coder|reviewer|closer)
+      orchestrator|architect|planner|scaffolder|test-maker|coder|reviewer|closer)
         return 0
         ;;
       *)
@@ -300,8 +300,8 @@ check_write() {
       fi
       return 1
       ;;
-    coder)
-      # Coder can write source code only — no tests, no rules, no state, no config
+    coder|scaffolder)
+      # Coder/Scaffolder can write source code + config — no tests, no rules, no state, no workflow
       if matches_any "$path" \
         '*.test.*' '*.spec.*' '__tests__/*' 'tests/*' \
         'example-ui-rules/*' 'eslint-config.*' '.eslintrc*' 'stylelint.config.*' \
@@ -313,9 +313,9 @@ check_write() {
       fi
       ;;
     planner)
-      # Planner can only write: tasks.md and its own context file
+      # Planner can only write: tasks.md, its own context file, and task-type.txt
       if matches_any "$path" \
-        'workflow/tasks.md' 'workflow/state/planner-context.md'; then
+        'workflow/tasks.md' 'workflow/state/planner-context.md' 'workflow/state/task-type.txt'; then
         return 0
       fi
       return 1
@@ -361,7 +361,7 @@ check_glob() {
       # Orchestrator and Closer have no Glob access
       return 1
       ;;
-    coder)
+    coder|scaffolder)
       for forbidden_dir in ".claude/agents" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "__tests__" "tests" "workflow/state"; do
         if [[ "$pattern" == *"$forbidden_dir"* ]]; then
           return 1
@@ -503,6 +503,38 @@ check_single_command() {
       [[ "$cmd" == npx\ vitest* ]] && return 0
       # Node (verify test setup)
       [[ "$cmd" == node\ * ]] && return 0
+      # Git read-only
+      [[ "$cmd" == git\ log* ]] && return 0
+      [[ "$cmd" == git\ diff* ]] && return 0
+      [[ "$cmd" == git\ status* ]] && return 0
+      [[ "$cmd" == git\ show* ]] && return 0
+      # Read-only utilities
+      [[ "$cmd" == ls* ]] && return 0
+      [[ "$cmd" == cat\ * ]] && return 0
+      [[ "$cmd" == head\ * ]] && return 0
+      [[ "$cmd" == tail\ * ]] && return 0
+      [[ "$cmd" == wc\ * ]] && return 0
+      return 1
+      ;;
+    scaffolder)
+      # Forbidden path check — same as coder
+      for forbidden in ".claude/agents/" "example-ui-rules/eslint-rules" "example-ui-rules/stylelint-rules" "example-ui-rules/bin" "review-feedback.md" "review-status.txt" "escalation-context.md"; do
+        if [[ "$cmd" == *"$forbidden"* ]]; then
+          return 1
+        fi
+      done
+      # Block test file references
+      if [[ "$cmd" == *".test."* || "$cmd" == *".spec."* || "$cmd" == *"__tests__"* ]]; then
+        return 1
+      fi
+      # Directory creation
+      [[ "$cmd" == mkdir\ * ]] && return 0
+      # npm install (but NOT npm test or npx — scaffolder doesn't run tests)
+      [[ "$cmd" == npm\ install* ]] && return 0
+      [[ "$cmd" == npm\ i\ * ]] && return 0
+      # Node / TypeScript (verify setup)
+      [[ "$cmd" == node\ * ]] && return 0
+      [[ "$cmd" == tsc* ]] && return 0
       # Git read-only
       [[ "$cmd" == git\ log* ]] && return 0
       [[ "$cmd" == git\ diff* ]] && return 0

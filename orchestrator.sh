@@ -151,7 +151,7 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
 
   # Launch orchestrator in background (from PROJECT_DIR so claude resolves agents correctly)
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
-  echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Test Maker → Coder → Reviewer." \
+  echo "Process the next unchecked task from workflow/tasks.md. Run the full pipeline: Planner → Scaffolder → Test Maker → Coder → Reviewer. For setup tasks (task-type.txt == setup), skip Test Maker and Coder." \
     | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) &
   CLAUDE_PID=$!
 

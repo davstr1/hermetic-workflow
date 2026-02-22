@@ -68,7 +68,18 @@ Write a brief context file to `workflow/state/planner-context.md` with:
 
 This file persists across iterations so you can track progress.
 
-### 6. If the Task Is Already Atomic and Current
+### 6. Classify Task Type
+
+Determine whether the task is **behavioral** or **setup** and write the result to `workflow/state/task-type.txt`:
+
+- **`behavioral`** (default): The task produces functions, APIs, or modules with testable input/output. These go through the full pipeline: Scaffolder → Test Maker → Coder → Reviewer.
+- **`setup`**: The task produces config files, scaffolding, or project infrastructure with no testable API. Examples: adding `package.json`, configuring `tsconfig.json`, setting up directory structure, installing dependencies. These skip Test Maker and Coder — the Scaffolder does the full work, then Reviewer verifies.
+
+**When in doubt, classify as `behavioral`.** Only use `setup` when the task clearly has no function or API to test.
+
+Write exactly one word (`behavioral` or `setup`) to `workflow/state/task-type.txt`.
+
+### 7. If the Task Is Already Atomic and Current
 
 Update `workflow/state/planner-context.md` with current status and exit. But still check step 2 — even an atomic task can be stale.
 
