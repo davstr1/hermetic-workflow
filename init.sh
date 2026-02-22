@@ -14,6 +14,7 @@
 #   - Installs the example-ui-rules linter dependencies
 #   - Creates the workflow/state/ directory
 #   - Makes scripts executable
+#   - Commits and pushes only the modified files
 
 set -euo pipefail
 
@@ -42,8 +43,17 @@ fi
 [[ -d "$TARGET" ]] || mkdir -p "$TARGET"
 TARGET="$(cd "$TARGET" && pwd)"
 
-log "Bootstrapping hermetic workflow into: $TARGET"
+# Read version
+VERSION="unknown"
+if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+  VERSION=$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')
+fi
+
+log "Bootstrapping hermetic workflow v${VERSION} into: $TARGET"
 echo ""
+
+# Track modified files for git commit
+MODIFIED_FILES=()
 
 # ── Copy workflow files ──
 
@@ -58,6 +68,7 @@ copy_if_missing() {
     warn "EXISTS (skipping): $dest"
   else
     cp "$src" "$dest"
+    MODIFIED_FILES+=("$dest")
     ok "Copied: $dest"
   fi
 }
@@ -68,7 +79,14 @@ copy_always() {
   local dest_dir
   dest_dir=$(dirname "$dest")
   mkdir -p "$dest_dir"
+
+  # Only track as modified if content actually changed
+  if [[ -f "$dest" ]] && diff -q "$src" "$dest" &>/dev/null; then
+    return 0
+  fi
+
   cp "$src" "$dest"
+  MODIFIED_FILES+=("$dest")
   ok "Copied: $dest"
 }
 
@@ -87,6 +105,9 @@ copy_always "$SCRIPT_DIR/.claude/agents/planner.md"      "$TARGET/.claude/agents
 copy_always "$SCRIPT_DIR/.claude/agents/test-maker.md"   "$TARGET/.claude/agents/test-maker.md"
 copy_always "$SCRIPT_DIR/.claude/agents/coder.md"        "$TARGET/.claude/agents/coder.md"
 copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"     "$TARGET/.claude/agents/reviewer.md"
+
+# Version file — always overwrite
+copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"
 
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
@@ -107,6 +128,7 @@ else
     --exclude='dist' \
     "$SCRIPT_DIR/example-ui-rules/" "$TARGET/example-ui-rules/"
   ok "Copied example-ui-rules/"
+  MODIFIED_FILES+=("$TARGET/example-ui-rules")
 fi
 
 # ── Make scripts executable ──
@@ -124,10 +146,32 @@ if [[ -f "$TARGET/example-ui-rules/package.json" ]]; then
   ok "Linter dependencies installed."
 fi
 
+# ── Commit and push modified files ──
+if [[ ${#MODIFIED_FILES[@]} -gt 0 ]] && git -C "$TARGET" rev-parse --is-inside-work-tree &>/dev/null; then
+  log "Committing updated workflow files..."
+
+  # Convert absolute paths to relative for git
+  relative_files=()
+  for f in "${MODIFIED_FILES[@]}"; do
+    relative_files+=("${f#"$TARGET"/}")
+  done
+
+  git -C "$TARGET" add "${relative_files[@]}"
+
+  # Only commit if there are staged changes
+  if ! git -C "$TARGET" diff --cached --quiet; then
+    git -C "$TARGET" commit -m "chore: update hermetic workflow to v${VERSION}"
+    git -C "$TARGET" push
+    ok "Committed and pushed workflow update (v${VERSION})."
+  else
+    log "No changes to commit."
+  fi
+fi
+
 # ── Summary ──
 echo ""
 ok "══════════════════════════════════════════════"
-ok "  Hermetic workflow bootstrapped!"
+ok "  Hermetic workflow v${VERSION} bootstrapped!"
 ok "══════════════════════════════════════════════"
 echo ""
 log "Next steps:"
