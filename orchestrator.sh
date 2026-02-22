@@ -76,6 +76,7 @@ echo ""
 > "$BLOCK_LOG" 2>/dev/null || true
 
 SENTINEL="$STATE_DIR/task-complete"
+TOTAL_ACTIVE_TIME=0
 
 while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
@@ -87,8 +88,9 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
     blocks_before=$(wc -l < "$BLOCK_LOG" 2>/dev/null || echo "0")
   fi
 
-  # Clear sentinel
+  # Clear sentinel and record start time
   rm -f "$SENTINEL"
+  date +%s > "$STATE_DIR/task-start-time.txt"
 
   # Launch orchestrator in background
   echo "orchestrator" > "$STATE_DIR/current-agent.txt"
@@ -110,6 +112,15 @@ while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
   # If process exited on its own (no sentinel), still reap it
   wait "$CLAUDE_PID" 2>/dev/null || true
   rm -f "$SENTINEL"
+
+  # Track task duration
+  task_start=$(cat "$STATE_DIR/task-start-time.txt" 2>/dev/null || echo "0")
+  task_end=$(date +%s)
+  task_duration=$((task_end - task_start))
+  TOTAL_ACTIVE_TIME=$((TOTAL_ACTIVE_TIME + task_duration))
+  task_min=$((task_duration / 60))
+  task_sec=$((task_duration % 60))
+  log "Task duration: ${task_min}m ${task_sec}s"
 
   # Report blocks from this session
   if [[ -f "$BLOCK_LOG" ]]; then
@@ -135,4 +146,11 @@ if [[ -f "$BLOCK_LOG" ]] && [[ -s "$BLOCK_LOG" ]]; then
   echo ""
 fi
 
+# Total active time
+total_min=$((TOTAL_ACTIVE_TIME / 60))
+total_sec=$((TOTAL_ACTIVE_TIME % 60))
 ok "All tasks complete. Workflow finished."
+ok "Total active time: ${total_min}m ${total_sec}s"
+if [[ -f "$STATE_DIR/usage-log.md" ]]; then
+  ok "Usage log: $STATE_DIR/usage-log.md"
+fi
