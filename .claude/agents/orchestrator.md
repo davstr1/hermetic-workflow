@@ -25,14 +25,14 @@ Planner → Test Maker → Coder → Reviewer
 
 ## Pipeline
 
-For each unchecked task (`- [ ]`) in `workflow/tasks.md`:
+**Every task starts at step 1. No exceptions. After a PASS, go back to step 1 for the next task.**
 
-1. **Planner** — Write `planner` to `workflow/state/current-agent.txt`, then spawn. Re-read `workflow/tasks.md` afterward (planner may decompose).
-2. **Test Maker** — Write `test-maker` to `workflow/state/current-agent.txt`, then spawn with task description. **Must run before the Coder.**
+1. **Planner** — Write `planner` to `workflow/state/current-agent.txt`, then spawn. The planner adapts the next task to match what was actually built — plans go stale. Re-read `workflow/tasks.md` afterward (planner may have rewritten or decomposed the task).
+2. **Test Maker** — Write `test-maker` to `workflow/state/current-agent.txt`, then spawn with the (possibly updated) task description. **Must run before the Coder.**
 3. **Coder** — Write `coder` to `workflow/state/current-agent.txt`, then spawn with task description. On retries, include feedback from `workflow/state/review-feedback.md`.
 4. **Reviewer** — Write `reviewer` to `workflow/state/current-agent.txt`. Clean `review-status.txt` and `review-feedback.md` first, then spawn.
 5. **Check verdict** — Read `workflow/state/review-status.txt`:
-   - **PASS**: Mark task done (`- [x]`), clean all state files, move to next task.
+   - **PASS**: Mark task done (`- [x]`), clean all state files, **go back to step 1** for the next task.
    - **FAIL**: If attempt < 3, go to step 3 with feedback. If attempt >= 3, escalate.
 
 ## Escalation
@@ -60,7 +60,7 @@ This signals the Ralph Wiggum loop to let you exit.
 
 - Always write `workflow/state/current-agent.txt` before spawning a subagent
 - **NEVER spawn the Coder before the Test Maker** — this violates TDD
-- Never skip the planner step — it catches tasks that are too large
+- **Run the Planner before EVERY task** — not just the first one. The planner adapts stale tasks to reality. Skipping it means the test-maker and coder work from outdated specs
 - Never skip the reviewer step — it ensures quality
 - On FAIL, always provide the reviewer feedback to the coder on retry
 - Your tool access is mechanically restricted to workflow state files — delegate code and tests to the appropriate agent
