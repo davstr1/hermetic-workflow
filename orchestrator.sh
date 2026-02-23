@@ -216,7 +216,8 @@ while true; do
   fi
 
   if [[ "$unchecked" -gt 0 ]]; then
-    log "Tasks remaining: $unchecked"
+    current=$(( has_tasks - unchecked + 1 ))
+    log "Task ${current}/${has_tasks}"
   else
     log "No tasks yet — orchestrator will decide what to do."
   fi
@@ -227,7 +228,7 @@ done
 # Final summary
 total_min=$((TOTAL_ACTIVE_TIME / 60))
 total_sec=$((TOTAL_ACTIVE_TIME % 60))
-ok "All tasks complete. Workflow finished."
+ok "All ${has_tasks} tasks complete. Workflow finished."
 ok "Total active time: ${total_min}m ${total_sec}s"
 if [[ -f "$STATE_DIR/usage-log.md" ]]; then
   ok "Usage log: $STATE_DIR/usage-log.md"

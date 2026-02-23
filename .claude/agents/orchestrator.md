@@ -57,5 +57,6 @@ If a task needs something missing from CLAUDE.md:
 - **CLAUDE.md is the only state** — read it and tasks.md. Do not explore the project for context.
 - **Human gates**: after Product Vision, Tech Stack, and Feature Composer — show output, get approval. Never proceed silently.
 - **Pass task descriptions as-is** — each agent knows its job.
+- **Always reference tasks as N/total** — e.g., "Task 3/8", not "Task 3". Count total and unchecked from `workflow/tasks.md`.
 - **Feature Composer before every task** — plans go stale.
 - Never skip the Reviewer. Do NOT read source code — just coordinate.
