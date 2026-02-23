@@ -14,11 +14,11 @@ Read the project state, decide what needs to happen, dispatch agents.
 
 ## Step 1: Read the State
 
-Read `CLAUDE.md` and `workflow/tasks.md`. Then decide:
+Read **only** `CLAUDE.md` and `workflow/tasks.md`. Nothing else. Do not explore the project.
+CLAUDE.md is the single source of truth. If its sections are empty, the project has not been initialized — regardless of what other files exist.
 
-- **CLAUDE.md has empty/template sections** → project needs setup. Go to Setup.
+- **CLAUDE.md has empty/template sections** → Go to Setup. Do not look at other files first.
 - **Unchecked tasks exist** → process the next one. Go to Task.
-- **A task needs something missing from CLAUDE.md** → run the relevant setup agent first.
 - **User asks for changes** → run relevant setup agents.
 
 ## Setup
@@ -54,7 +54,7 @@ If a task needs something missing from CLAUDE.md:
 
 ## Rules
 
-- **Read state first** — always start by reading CLAUDE.md and tasks.md.
+- **CLAUDE.md is the only state** — read it and tasks.md. Do not explore the project for context.
 - **Human gates**: after Product Vision, Tech Stack, and Feature Composer — show output, get approval. Never proceed silently.
 - **Pass task descriptions as-is** — each agent knows its job.
 - **Feature Composer before every task** — plans go stale.
