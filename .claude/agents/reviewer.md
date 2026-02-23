@@ -31,6 +31,7 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
    - Library: import and call with edge cases
    - Skip if unclear or not practical.
 10. **Check task completion**: does the code fulfill the task intent?
+11. **Integration check**: run the full test suite, not just the new block's tests. If previous blocks broke — FAIL.
 
 ## PASS
 
