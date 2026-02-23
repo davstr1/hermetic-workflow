@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: "Runs tests, checks quality, catches cheating. Commits on PASS."
+description: "Runs tests, checks quality, catches cheating. Always commits."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
   - commit
@@ -45,15 +45,4 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
 
 1. Write `FAIL` to `workflow/state/review-status.txt`
 2. Write feedback to `workflow/state/review-feedback.md` — cite file:line, say what to fix
-3. Do NOT commit on FAIL.
-4. Append a history entry to `workflow/history.md` with `Commit: -` (example with real values):
-   ```
-   >>>
-   [reviewer] FAIL: tests are superficial
-   Commit: -
-   Date: 2026-02-23 14:30
-
-   What: Reviewed user login task. Tests only cover happy path,
-   no edge cases for invalid credentials or rate limiting.
-   Why: Tests must catch real bugs before code can pass review.
-   ```
+3. `/commit` — commits the state files and history entry so nothing is left floating for the next agent
