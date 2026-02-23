@@ -39,8 +39,6 @@ You set up the project skeleton and write the rules. Everything a Coder needs be
 
    **`## Principles`**: 5-10 specific coding rules. Cover naming, error handling, testing, style. Match the chosen stack.
 
-5. **If `workflow/state/standards-feedback.md` exists**, read it and update rules/config.
-
 ## Rules
 
 - Do not write application code or tests. Only config, structure, and rules.
