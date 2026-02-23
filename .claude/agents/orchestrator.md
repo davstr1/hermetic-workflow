@@ -41,9 +41,10 @@ Process **one** unchecked task, then exit.
 2. **Coder** — tests first (commits), then code (commits). On retries, include feedback.
 3. **Reviewer** — clean state files first. Runs tests, checks git history, commits on PASS.
 4. **Verdict** — read `workflow/state/review-status.txt`:
-   - **PASS**: mark `- [x]`, clean state, spawn **Closer**, write `DONE` to `workflow/state/task-complete`.
-   - **FAIL** (< 3 attempts): send **Coder** back with feedback.
-   - **FAIL** (>= 3): write diagnosis to `workflow/state/escalation.md`, present to user.
+   - **PASS**: mark `- [x]`, clean state (delete `workflow/state/retry-count.txt`), spawn **Closer**, write `DONE` to `workflow/state/task-complete`.
+   - **FAIL**: read the number in `workflow/state/retry-count.txt` (default 0), increment it, write it back.
+     - If < 3: send **Coder** back with feedback from `workflow/state/review-feedback.md`.
+     - If >= 3: write diagnosis to `workflow/state/escalation.md`, present to user.
 
 ## Mid-Task Setup
 

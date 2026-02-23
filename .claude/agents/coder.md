@@ -24,7 +24,8 @@ You write both tests and implementation for a task. Two separate commits: tests 
 ## On Retries
 
 If the Reviewer sent you back with feedback:
-- Read every point in the feedback
+- Read `workflow/state/review-feedback.md` for the Reviewer's feedback
+- Read every point in it
 - Decide if the fix is in tests, code, or both
 - Commit test changes first, then code changes (same two-commit pattern)
 
