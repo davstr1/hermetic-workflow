@@ -118,6 +118,7 @@ copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
 copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"      "$TARGET/workflow/tasks.md"
+copy_if_missing "$SCRIPT_DIR/workflow/history.md"    "$TARGET/workflow/history.md"
 copy_if_missing "$SCRIPT_DIR/CLAUDE.md"              "$TARGET/CLAUDE.md"
 
 # Linter — copy the whole example-ui-rules directory

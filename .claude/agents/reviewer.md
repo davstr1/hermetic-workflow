@@ -46,3 +46,13 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
 1. Write `FAIL` to `workflow/state/review-status.txt`
 2. Write feedback to `workflow/state/review-feedback.md` — cite file:line, say what to fix
 3. Do NOT commit on FAIL.
+4. Append a history entry to `workflow/history.md` with `Commit: -`:
+   ```
+   >>>
+   [reviewer] FAIL: short reason
+   Commit: -
+   Date: <timestamp via date "+%Y-%m-%d %H:%M">
+
+   What: <what was reviewed and what failed>
+   Why: <why it was rejected>
+   ```

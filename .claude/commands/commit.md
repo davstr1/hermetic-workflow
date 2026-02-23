@@ -52,6 +52,20 @@ Why: Task meets requirements and passes all checks.
 1. `git add -A`
 2. Write the message following the format above
 3. `git commit` with that message
+4. Append a history entry to `workflow/history.md`:
+   - Get the short hash: `git log -1 --format="%h"`
+   - Get the timestamp: `date "+%Y-%m-%d %H:%M"`
+   - Append an entry in this exact format:
+     ```
+     >>>
+     [agent-name] short summary
+     Commit: <hash>
+     Date: <timestamp>
+
+     What: <from commit message>
+     Why: <from commit message>
+     ```
+   - The `>>>` delimiter, summary line, Commit, Date, What, and Why all come from the commit you just made.
 
 ## Rules
 
