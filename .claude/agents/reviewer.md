@@ -46,13 +46,14 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
 1. Write `FAIL` to `workflow/state/review-status.txt`
 2. Write feedback to `workflow/state/review-feedback.md` — cite file:line, say what to fix
 3. Do NOT commit on FAIL.
-4. Append a history entry to `workflow/history.md` with `Commit: -`:
+4. Append a history entry to `workflow/history.md` with `Commit: -` (example with real values):
    ```
    >>>
-   [reviewer] FAIL: short reason
+   [reviewer] FAIL: tests are superficial
    Commit: -
-   Date: <timestamp via date "+%Y-%m-%d %H:%M">
+   Date: 2026-02-23 14:30
 
-   What: <what was reviewed and what failed>
-   Why: <why it was rejected>
+   What: Reviewed user login task. Tests only cover happy path,
+   no edge cases for invalid credentials or rate limiting.
+   Why: Tests must catch real bugs before code can pass review.
    ```

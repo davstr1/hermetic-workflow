@@ -55,17 +55,18 @@ Why: Task meets requirements and passes all checks.
 4. Append a history entry to `workflow/history.md`:
    - Get the short hash: `git log -1 --format="%h"`
    - Get the timestamp: `date "+%Y-%m-%d %H:%M"`
-   - Append an entry in this exact format:
+   - Append an entry in this exact format (example with real values):
      ```
      >>>
-     [agent-name] short summary
-     Commit: <hash>
-     Date: <timestamp>
+     [coder] implement user login
+     Commit: abc1234
+     Date: 2026-02-23 14:30
 
-     What: <from commit message>
-     Why: <from commit message>
+     What: Created src/auth/login.ts with login() function that calls
+     POST /api/auth/login, validates input, and returns a session token.
+     Why: First auth endpoint needed before building protected routes.
      ```
-   - The `>>>` delimiter, summary line, Commit, Date, What, and Why all come from the commit you just made.
+   - All values come from the commit you just made: agent name and summary from the first line, What/Why from the body, hash from `git log`, timestamp from `date`.
 
 ## Rules
 
