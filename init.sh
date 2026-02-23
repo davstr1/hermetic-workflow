@@ -118,8 +118,39 @@ copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
 copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"      "$TARGET/workflow/tasks.md"
-copy_if_missing "$SCRIPT_DIR/workflow/history.md"    "$TARGET/workflow/history.md"
 copy_if_missing "$SCRIPT_DIR/CLAUDE.md"              "$TARGET/CLAUDE.md"
+
+# History — always update header, but preserve existing entries
+log "Updating workflow/history.md..."
+_history_src="$SCRIPT_DIR/workflow/history.md"
+_history_dest="$TARGET/workflow/history.md"
+mkdir -p "$(dirname "$_history_dest")"
+if [[ -f "$_history_dest" ]]; then
+  # Extract existing entries (everything after the header comments)
+  _old_entries=$(sed -n '/^>>>/,$p' "$_history_dest")
+  # Write fresh header from source
+  cp "$_history_src" "$_history_dest"
+  # Prepend update notice + old entries
+  {
+    echo ">>>"
+    echo "[init] workflow updated to v${VERSION}"
+    echo "Commit: -"
+    echo "Date: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo ""
+    echo "What: Workflow framework updated via init.sh."
+    echo "Why: New version includes project history tracking after each commit."
+    echo ""
+    if [[ -n "$_old_entries" ]]; then
+      echo "$_old_entries"
+    fi
+  } >> "$_history_dest"
+  MODIFIED_FILES+=("$_history_dest")
+  ok "Updated: $_history_dest (preserved existing entries)"
+else
+  cp "$_history_src" "$_history_dest"
+  MODIFIED_FILES+=("$_history_dest")
+  ok "Copied: $_history_dest"
+fi
 
 # Linter — copy the whole example-ui-rules directory
 log "Copying linter (example-ui-rules)..."
