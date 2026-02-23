@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# orchestrator.sh — Launches the TDD workflow.
+# orchestrator.sh — Launches the workflow.
 #
-# Bash handles routing and looping. The orchestrator agent is invoked once
-# per task with fresh context, preventing stale accumulation.
+# Bash handles mode detection and looping. The orchestrator agent does the work.
 #
 # Flow:
 #   1. Git pre-flight (init repo + remote if needed)
-#   2. If no tasks exist → run architect for interactive setup
-#   3. While unchecked tasks remain → run orchestrator (one task per session)
-#   4. If frontend detected → validate in browser, fix loop (max 2 rounds)
+#   2. If no tasks exist → run orchestrator in setup mode
+#   3. While unchecked tasks remain → run orchestrator in task mode (one per session)
 #
 # Usage:
 #   ./orchestrator.sh                                # Full run
@@ -27,13 +25,11 @@ BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
-MAGENTA='\033[0;35m'
 NC='\033[0m'
 
 log()  { echo -e "${BLUE}[orchestrator]${NC} $*"; }
 ok()   { echo -e "${GREEN}[orchestrator]${NC} $*"; }
 warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
-vlog() { echo -e "${MAGENTA}[frontend-validator]${NC} $*"; }
 
 # Parse args
 skip_permissions=""
@@ -56,50 +52,40 @@ for ((i=0; i<${#args[@]}; i++)); do
   esac
 done
 
-# ── Task loop function ──
-# Processes all unchecked tasks from workflow/tasks.md, one per session.
-# Uses the sentinel pattern to kill each session after task completion.
-run_task_loop() {
+# ── Sentinel-based agent runner ──
+# Launches the orchestrator agent, waits for DONE sentinel, kills session.
+run_with_sentinel() {
+  local prompt="$1"
   local SENTINEL="$STATE_DIR/task-complete"
 
-  while grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; do
-    remaining=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
-    log "Tasks remaining: $remaining"
+  rm -f "$SENTINEL"
+  date +%s > "$STATE_DIR/task-start-time.txt"
 
-    # Clear sentinel and record start time
-    rm -f "$SENTINEL"
-    date +%s > "$STATE_DIR/task-start-time.txt"
+  echo "$prompt" \
+    | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) &
+  CLAUDE_PID=$!
 
-    # Launch orchestrator in background (fresh context per task)
-    echo "Process the next unchecked task from workflow/tasks.md. Pipeline: Planner → Test Maker (commit) → Coder (commit) → Reviewer (verify + commit). On PASS, spawn Closer." \
-      | (cd "$PROJECT_DIR" && claude --agent orchestrator $skip_permissions) &
-    CLAUDE_PID=$!
-
-    # Watch for sentinel — kill session when task is done (fresh context for next task)
-    while kill -0 "$CLAUDE_PID" 2>/dev/null; do
-      if [[ -f "$SENTINEL" ]]; then
-        log "Task complete. Killing session for fresh context..."
-        kill "$CLAUDE_PID" 2>/dev/null
-        wait "$CLAUDE_PID" 2>/dev/null || true
-        break
-      fi
-      sleep 2
-    done
-
-    # If process exited on its own (no sentinel), still reap it
-    wait "$CLAUDE_PID" 2>/dev/null || true
-    rm -f "$SENTINEL"
-
-    # Track task duration
-    task_start=$(cat "$STATE_DIR/task-start-time.txt" 2>/dev/null || echo "0")
-    task_end=$(date +%s)
-    task_duration=$((task_end - task_start))
-    TOTAL_ACTIVE_TIME=$((TOTAL_ACTIVE_TIME + task_duration))
-    task_min=$((task_duration / 60))
-    task_sec=$((task_duration % 60))
-    log "Task duration: ${task_min}m ${task_sec}s"
-    echo ""
+  while kill -0 "$CLAUDE_PID" 2>/dev/null; do
+    if [[ -f "$SENTINEL" ]]; then
+      log "Session complete. Killing for fresh context..."
+      kill "$CLAUDE_PID" 2>/dev/null
+      wait "$CLAUDE_PID" 2>/dev/null || true
+      break
+    fi
+    sleep 2
   done
+
+  wait "$CLAUDE_PID" 2>/dev/null || true
+  rm -f "$SENTINEL"
+
+  # Track duration
+  local start end duration
+  start=$(cat "$STATE_DIR/task-start-time.txt" 2>/dev/null || echo "0")
+  end=$(date +%s)
+  duration=$((end - start))
+  TOTAL_ACTIVE_TIME=$((TOTAL_ACTIVE_TIME + duration))
+  log "Duration: $((duration / 60))m $((duration % 60))s"
+  echo ""
 }
 
 # ── Example mode: pre-baked smoke-test project ──
@@ -192,7 +178,7 @@ if [[ -n "$run_reset" ]]; then
     esac
   done
 
-  ok "Workflow state cleaned. Unchecked tasks will restart from Planner."
+  ok "Workflow state cleaned."
   echo ""
 fi
 
@@ -214,69 +200,28 @@ if [[ -z "$run_example" ]]; then
   fi
 fi
 
-# ── Setup check ──
-if ! grep -q '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; then
-  log "No tasks found — running Architect for setup..."
-  echo ""
-  (cd "$PROJECT_DIR" && claude --agent architect $skip_permissions) || true
-fi
-
-# ── Task loop: one task per session, fresh context ──
-log "Starting task loop..."
-echo ""
-
 TOTAL_ACTIVE_TIME=0
-run_task_loop
 
-# ── Validation loop (frontend projects only) ──
-MAX_VALIDATION_ROUNDS=2
-validation_round=0
+# ── Main loop: orchestrator decides what to do ──
+# Each session: orchestrator reads CLAUDE.md + tasks.md, decides setup vs task,
+# dispatches agents, then writes DONE sentinel. Bash kills and re-launches.
 
-while [[ $validation_round -lt $MAX_VALIDATION_ROUNDS ]]; do
-  # Detect frontend: check for dev/start/preview script in package.json
-  if ! command -v jq &>/dev/null || ! [[ -f "$PROJECT_DIR/package.json" ]]; then
-    break
-  fi
-  has_frontend=$(jq -r '.scripts.dev // .scripts.start // .scripts.preview // empty' "$PROJECT_DIR/package.json" 2>/dev/null)
-  if [[ -z "$has_frontend" ]]; then
-    if [[ $validation_round -eq 0 ]]; then
-      log "No frontend dev server detected — skipping validation."
-    fi
-    break
+while true; do
+  # Check if there's anything left to do
+  has_tasks=$(grep -c '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
+  unchecked=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
+
+  if [[ "$has_tasks" -gt 0 && "$unchecked" -eq 0 ]]; then
+    break  # All tasks done
   fi
 
-  validation_round=$((validation_round + 1))
-  vlog "Validation round $validation_round/$MAX_VALIDATION_ROUNDS..."
-
-  # Clean previous validation state
-  rm -f "$STATE_DIR/validation-status.txt" "$STATE_DIR/validation-report.md"
-  rm -rf "$STATE_DIR/screenshots"
-
-  # Run validator agent
-  echo "Validate the frontend. Start the dev server, crawl pages with Playwright, check console errors, take screenshots of broken pages. Write results to workflow/state/validation-report.md and verdict to workflow/state/validation-status.txt." \
-    | (cd "$PROJECT_DIR" && claude --agent frontend-validator $skip_permissions) || true
-
-  # Check verdict
-  verdict=$(cat "$STATE_DIR/validation-status.txt" 2>/dev/null || echo "PASS")
-  if [[ "$verdict" == "PASS" ]]; then
-    ok "Frontend validation passed."
-    break
-  fi
-
-  warn "Frontend validation found issues (NEEDS_FIX). Running Architect to create fix tasks..."
-
-  # Run architect in fix mode
-  echo "Read workflow/state/validation-report.md. It contains frontend validation errors found by the browser validator. Create targeted fix tasks in workflow/tasks.md to resolve these issues. Do not rewrite completed tasks." \
-    | (cd "$PROJECT_DIR" && claude --agent architect $skip_permissions) || true
-
-  # Re-run the task loop for new fix tasks
-  if grep -q '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null; then
-    log "Fix tasks created. Re-entering task loop..."
-    run_task_loop
+  if [[ "$unchecked" -gt 0 ]]; then
+    log "Tasks remaining: $unchecked"
   else
-    warn "Architect did not create any fix tasks. Stopping validation."
-    break
+    log "No tasks yet — orchestrator will decide what to do."
   fi
+
+  run_with_sentinel "Read CLAUDE.md and workflow/tasks.md. Decide what the project needs and act."
 done
 
 # Final summary

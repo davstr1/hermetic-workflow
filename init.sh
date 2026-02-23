@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# init.sh — Bootstrap the hermetic workflow into a target project.
+# init.sh — Bootstrap the workflow into a target project.
 #
 # Usage:
 #   # From the hermetic-workflow repo:
@@ -35,7 +35,7 @@ TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
   echo "Usage: $0 /path/to/target-project"
   echo ""
-  echo "Bootstraps the hermetic TDD workflow into the target project."
+  echo "Bootstraps the workflow into the target project."
   exit 1
 fi
 
@@ -49,7 +49,7 @@ if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
   VERSION=$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')
 fi
 
-log "Bootstrapping hermetic workflow v${VERSION} into: $TARGET"
+log "Bootstrapping workflow v${VERSION} into: $TARGET"
 echo ""
 
 # Track modified files for git commit
@@ -96,26 +96,29 @@ copy_always "$SCRIPT_DIR/.claude/hooks/guard-files.sh"  "$TARGET/.claude/hooks/g
 copy_always "$SCRIPT_DIR/.claude/hooks/enforce-lint.sh" "$TARGET/.claude/hooks/enforce-lint.sh"
 copy_always "$SCRIPT_DIR/.claude/hooks/session-start.sh" "$TARGET/.claude/hooks/session-start.sh"
 copy_always "$SCRIPT_DIR/.claude/settings.json"         "$TARGET/.claude/settings.json"
+copy_always "$SCRIPT_DIR/.claude/commands/commit.md"    "$TARGET/.claude/commands/commit.md"
 copy_always "$SCRIPT_DIR/orchestrator.sh"               "$TARGET/orchestrator.sh"
 
 # Agent definitions — always overwrite (these define agent behavior)
 log "Copying agent definitions..."
-copy_always "$SCRIPT_DIR/.claude/agents/orchestrator.md" "$TARGET/.claude/agents/orchestrator.md"
-copy_always "$SCRIPT_DIR/.claude/agents/architect.md"    "$TARGET/.claude/agents/architect.md"
-copy_always "$SCRIPT_DIR/.claude/agents/planner.md"      "$TARGET/.claude/agents/planner.md"
-copy_always "$SCRIPT_DIR/.claude/agents/test-maker.md"   "$TARGET/.claude/agents/test-maker.md"
-copy_always "$SCRIPT_DIR/.claude/agents/coder.md"        "$TARGET/.claude/agents/coder.md"
-copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"     "$TARGET/.claude/agents/reviewer.md"
-copy_always "$SCRIPT_DIR/.claude/agents/closer.md"      "$TARGET/.claude/agents/closer.md"
-copy_always "$SCRIPT_DIR/.claude/agents/frontend-validator.md" "$TARGET/.claude/agents/frontend-validator.md"
+copy_always "$SCRIPT_DIR/.claude/agents/orchestrator.md"      "$TARGET/.claude/agents/orchestrator.md"
+copy_always "$SCRIPT_DIR/.claude/agents/product-vision.md"    "$TARGET/.claude/agents/product-vision.md"
+copy_always "$SCRIPT_DIR/.claude/agents/tech-stack.md"        "$TARGET/.claude/agents/tech-stack.md"
+copy_always "$SCRIPT_DIR/.claude/agents/data-scout.md"        "$TARGET/.claude/agents/data-scout.md"
+copy_always "$SCRIPT_DIR/.claude/agents/data-verifier.md"     "$TARGET/.claude/agents/data-verifier.md"
+copy_always "$SCRIPT_DIR/.claude/agents/rules-guide.md"       "$TARGET/.claude/agents/rules-guide.md"
+copy_always "$SCRIPT_DIR/.claude/agents/feature-composer.md"  "$TARGET/.claude/agents/feature-composer.md"
+copy_always "$SCRIPT_DIR/.claude/agents/coder.md"             "$TARGET/.claude/agents/coder.md"
+copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"          "$TARGET/.claude/agents/reviewer.md"
+copy_always "$SCRIPT_DIR/.claude/agents/closer.md"            "$TARGET/.claude/agents/closer.md"
 
 # Version file — always overwrite
 copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"
 
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
-copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"   "$TARGET/workflow/tasks.md"
-copy_if_missing "$SCRIPT_DIR/CLAUDE.md"           "$TARGET/CLAUDE.md"
+copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"      "$TARGET/workflow/tasks.md"
+copy_if_missing "$SCRIPT_DIR/CLAUDE.md"              "$TARGET/CLAUDE.md"
 
 # Linter — copy the whole example-ui-rules directory
 log "Copying linter (example-ui-rules)..."
@@ -180,7 +183,7 @@ if [[ ${#MODIFIED_FILES[@]} -gt 0 ]] && git -C "$TARGET" rev-parse --is-inside-w
 
   # Only commit if there are staged changes
   if ! git -C "$TARGET" diff --cached --quiet 2>/dev/null; then
-    if git -C "$TARGET" commit -m "chore: update hermetic workflow to v${VERSION}" 2>&1; then
+    if git -C "$TARGET" commit -m "chore: update workflow to v${VERSION}" 2>&1; then
       ok "Committed workflow update (v${VERSION})."
       if git -C "$TARGET" push 2>&1; then
         ok "Pushed to remote."
@@ -200,7 +203,7 @@ fi
 # ── Summary ──
 echo ""
 ok "══════════════════════════════════════════════"
-ok "  Hermetic workflow v${VERSION} bootstrapped!"
+ok "  Workflow v${VERSION} bootstrapped!"
 ok "══════════════════════════════════════════════"
 echo ""
 log "Next steps:"

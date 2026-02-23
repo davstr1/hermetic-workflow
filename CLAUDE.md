@@ -1,14 +1,44 @@
 # Project
 
-> This section is written by the Architect agent during setup.
-> Describe what we're building, the tech stack, and any high-level context that every agent needs.
+> Written by the Rules Guide. What we're building, one paragraph.
 
-<!-- The Architect will replace this with a project description. -->
+<!-- The Rules Guide will replace this. -->
+
+## Screens
+
+> ASCII doodles and user flows from the Product Vision agent.
+
+<!-- The Product Vision agent will write this. -->
+
+## Tech Stack
+
+> Technology decisions from the Tech Stack agent.
+
+<!-- The Tech Stack agent will write this. -->
+
+## Structure
+
+> Folder layout, file naming, where source/tests/config live.
+
+<!-- The Rules Guide will write this. Example:
+
+```
+src/
+  components/     UI components
+  lib/            Shared utilities
+  routes/         Page routes
+  types/          TypeScript types
+tests/            Test files (or colocated as *.test.ts)
+public/           Static assets
+```
+
+Naming: kebab-case for files, PascalCase for components.
+Tests: colocated as `<module>.test.ts` or in `tests/`.
+Config: root level (tsconfig.json, .eslintrc, etc.)
+-->
 
 ## Principles
 
-> Quality principles that all code must follow. Written by the Architect.
+> Coding rules that all agents must follow.
 
-<!-- The Architect will replace this with project-specific principles. -->
-<!-- Each principle should be specific, enforceable, and testable. -->
-<!-- Examples: "NEVER use inline styles", "All API responses must include error codes" -->
+<!-- The Rules Guide will write 5-10 specific, enforceable rules here. -->

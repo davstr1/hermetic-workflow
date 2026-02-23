@@ -1,14 +1,39 @@
 # Project
 
 A tiny Node.js string-utility library (`bugfix-example`) with known bugs.
-Source files live in `src/`. Each module exports a single named function.
 Tests already exist and some are failing — the goal is to fix the bugs, not rewrite.
 No runtime dependencies — only `vitest` for testing.
 
+## Tech Stack
+
+**Language**: JavaScript (ES modules, `.js` files)
+**Test framework**: vitest (already in package.json)
+**Build**: none — plain JS, no compile step
+
+## Structure
+
+```
+src/
+  slugify.js        String slugify function (has bug)
+  slugify.test.js   Tests for slugify (pre-written, some failing)
+  wrap.js           Word wrap function (has bug)
+  wrap.test.js      Tests for wrap (pre-written, some failing)
+package.json        Project config
+```
+
+- Source files: `src/<module>.js`, one named export per file.
+- Test files: already exist as `src/<module>.test.js` — pre-written and intentionally failing.
+- Tasks are about fixing bugs, NOT creating new files.
+- Fix the bug with the minimal change. Do NOT rewrite from scratch.
+- For the test commit: verify existing tests capture the bug. If they do, make a no-op test commit.
+- Keep existing JSDoc intact. Update only if the fix changes behavior.
+- Run tests: `npm test` (runs `vitest run`).
+- No lint configured — skip lint.
+
 ## Principles
 
-- **Fix, don't rewrite**: The existing code structure is intentional. Fix the specific bug without rewriting the function from scratch.
-- **No runtime dependencies**: The library must have zero production dependencies. Only devDependencies (vitest) are allowed.
-- **JSDoc on every export**: Every exported function must have a JSDoc comment with `@param`, `@returns`, and a usage `@example`.
-- **Handle edge cases explicitly**: Empty strings, null/undefined inputs, and boundary values must be handled gracefully — never throw on bad input, return sensible defaults instead.
-- **ES modules everywhere**: Use `import`/`export` syntax. No CommonJS (`require`/`module.exports`).
+- **Fix, don't rewrite**: The existing code structure is intentional. Fix the specific bug without rewriting.
+- **No runtime dependencies**: Zero production dependencies. Only devDependencies (vitest).
+- **JSDoc on every export**: Every exported function must have `@param`, `@returns`, and `@example`.
+- **Handle edge cases explicitly**: Empty strings, null/undefined, and boundary values must not throw — return sensible defaults.
+- **ES modules everywhere**: Use `import`/`export`. No CommonJS.

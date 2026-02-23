@@ -1,6 +1,8 @@
-# How the Hermetic Workflow Works
+# How the Workflow Works
 
-A TDD-driven multi-agent system where **bash controls the loop** and **Claude agents do the work**. Each agent handles one responsibility, commits its output, and exits. Fresh context is enforced per task to prevent token bloat.
+A multi-agent system where **bash controls the loop** and **Claude agents do the work**. Each agent handles one responsibility, commits its output, and exits. Fresh context is enforced per task to prevent token bloat.
+
+**Single source of truth: `CLAUDE.md`** — every agent reads it, setup agents each write their own section.
 
 ## The Big Picture
 
@@ -8,66 +10,80 @@ A TDD-driven multi-agent system where **bash controls the loop** and **Claude ag
 orchestrator.sh
   │
   ├─ 1. Git pre-flight (init repo + remote)
-  ├─ 2. Architect (interactive setup, if no tasks exist)
+  ├─ 2. Setup pipeline (if no tasks exist)
+  │     ├─ Product Vision  → CLAUDE.md ## Screens (human validated)
+  │     ├─ Tech Stack      → CLAUDE.md ## Tech Stack (human validated)
+  │     ├─ Data Scout ↔ Data Verifier → CLAUDE.md ## Data Contract (if external APIs, max 2 rounds)
+  │     ├─ Rules Guide     → CLAUDE.md ## Project + ## Principles
+  │     └─ Feature Composer → workflow/tasks.md (first plan)
   ├─ 3. Task loop (one agent pipeline per task)
-  ├─ 4. Frontend validation loop (if dev server detected)
-  └─ 5. Summary (total time + token usage)
+  └─ 4. Summary (total time + token usage)
 ```
 
-## Setup: The Architect
+## Setup Pipeline (5 Steps)
 
-Runs once at project start when `workflow/tasks.md` has no tasks. The Architect:
+Runs once when `workflow/tasks.md` has no tasks. Each step writes a section of `CLAUDE.md`.
 
-- Interviews the user about the project and quality standards
-- Writes `CLAUDE.md` (project description + principles, loaded by every agent)
-- Populates `## Project Context` sections in each agent's `.md` file
-- Configures lint rules in `example-ui-rules/`
-- Scaffolds the task list in `workflow/tasks.md`
+### Step 1: Product Vision
 
-The Architect never writes code. It writes governance.
+Interviews the user about what they want to build. Writes ASCII screen doodles and user flows to the `## Screens` section of `CLAUDE.md`. The user must confirm before proceeding.
+
+### Step 2: Tech Stack
+
+Reads `CLAUDE.md` (Screens section), researches technology options, and helps the user pick a stack. Writes decisions to the `## Tech Stack` section. The user picks — the agent presents trade-offs.
+
+### Step 3: Data Scout + Data Verifier (Conditional)
+
+Only runs if `CLAUDE.md` mentions APIs, databases, or external SDKs.
+
+- **Data Scout** reads API docs and proposes schemas to `## Data Contract` in `CLAUDE.md`
+- **Data Verifier** hits real endpoints and checks if the proposed shapes are correct
+- If mismatches found, Scout fixes and Verifier re-checks (max 2 rounds)
+
+If no external data is detected, this step is skipped.
+
+### Step 4: Rules Guide
+
+Reads `CLAUDE.md` (all sections written so far). Writes the `## Project` section (summary + file locations) and `## Principles` section (5-10 coding rules).
+
+### Step 5: Feature Composer
+
+Reads `CLAUDE.md` (now complete) and breaks the project into small, testable tasks in `workflow/tasks.md`.
 
 ## The Task Loop
 
-`orchestrator.sh` loops while unchecked tasks (`- [ ]`) exist in `workflow/tasks.md`. Each iteration spawns a fresh orchestrator agent session that processes exactly one task through the pipeline:
+`orchestrator.sh` loops while unchecked tasks (`- [ ]`) exist in `workflow/tasks.md`. Each iteration spawns a fresh orchestrator agent session that processes one task:
 
 ```
-Planner → Test Maker (commit) → Coder (commit) → Reviewer (verdict)
-               ↑                      ↑                  ↓
-               └── test problem ──────┴── code problem ──┘  (max 3 retries)
+Feature Composer → Coder (test commit + code commit) → Reviewer (verdict)
+       ↑                                                    ↓
+       └──────────── retry (max 3) ────────────────────────┘
 ```
 
 ### Agents in the Pipeline
 
 | Agent | Job | Key Rule |
 |-------|-----|----------|
-| **Planner** | Adapts the task to current reality, decomposes if too large | Always runs first |
-| **Test Maker** | Writes tests from the task description, commits them | Runs before Coder (TDD) |
-| **Coder** | Implements code to pass the tests, builds, commits | Never touches test files |
-| **Reviewer** | Runs tests, audits git history, checks principles | Writes PASS or FAIL |
+| **Feature Composer** | Adapts the task to current reality, splits if too large | Always runs first |
+| **Coder** | Writes tests (commits), then writes code (commits) | Two commits: test then code |
+| **Reviewer** | Runs tests, audits git history, checks principles | Diffs between Coder's two commits |
 | **Closer** | Logs token usage and task duration | Runs on haiku, fast |
+
+### The Two-Commit Pattern
+
+The Coder makes two commits per task:
+1. `test: <task>` — tests only
+2. `feat: <task>` — implementation code
+
+The Reviewer diffs between these two commits. If the code commit weakened or deleted tests, that is cheating and the review fails.
 
 ### The Sentinel Pattern
 
-The orchestrator agent runs in background. When a task passes, it writes `DONE` to `workflow/state/task-complete`. The bash loop polls for this file, kills the agent session, and spawns a fresh one for the next task. This prevents context from accumulating across tasks.
+The orchestrator agent runs in background. When a task passes, it writes `DONE` to `workflow/state/task-complete`. The bash loop polls for this file, kills the agent session, and spawns a fresh one for the next task.
 
 ### Retry Logic
 
-On FAIL, the orchestrator reads `workflow/state/review-feedback.md` and routes:
-- Test problem (stale mocks, wrong assertions) → back to Test Maker
-- Code problem (wrong logic, build errors) → back to Coder
-- Both or unclear → both agents re-run
-
-Max 3 attempts. After that, the task is marked STUCK and escalated to the user.
-
-## Frontend Validation (Post-Pipeline)
-
-After all tasks complete, `orchestrator.sh` checks `package.json` for a dev server script (`dev`, `start`, or `preview`). If found, it enters a validation loop (max 2 rounds):
-
-1. **Frontend Validator** starts the dev server, opens pages in the browser, checks console for errors, screenshots broken pages
-2. If `PASS` → done
-3. If `NEEDS_FIX` → Architect reads the report, creates fix tasks → task loop re-runs → re-validates
-
-Non-frontend projects skip this entirely.
+On FAIL, the orchestrator sends the Coder back with the Reviewer's feedback. The Coder decides whether to fix tests, code, or both. Max 3 attempts before escalating to the user.
 
 ## Hooks
 
@@ -81,11 +97,11 @@ Three hooks run automatically via `.claude/settings.json`:
 
 ## State Files
 
-All ephemeral state lives in `workflow/state/` (git-ignored). Agents communicate through files, not direct calls:
+All ephemeral state lives in `workflow/state/` (git-ignored). Agents communicate through files:
 
 - `task-complete` — sentinel for bash to detect task completion
-- `review-status.txt` / `review-feedback.md` — reviewer's verdict and feedback
-- `validation-status.txt` / `validation-report.md` — frontend validator results
+- `review-status.txt` / `review-feedback.md` — Reviewer's verdict and feedback
+- `verifier-status.txt` / `verifier-feedback.md` — Data Verifier results
 - `usage-log.md` — cumulative token usage across all tasks
 - `guard-trace.log` — audit trail of all tool invocations
 
@@ -108,4 +124,4 @@ cd /path/to/my-project
 ./orchestrator.sh --example string-utils
 ```
 
-Sets up a pre-baked project in `/tmp/`, runs `init.sh`, patches agent context, installs dependencies, and runs the full pipeline. Useful for demos and testing the workflow itself.
+Sets up a pre-baked project in `/tmp/`, runs `init.sh`, patches agent context, installs dependencies, and runs the full pipeline.
