@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: Orchestrates the TDD workflow across specialized agents
-tools: Task(planner, test-maker, coder, reviewer, closer), Read, Write
+tools: Task(planner, test-maker, coder, reviewer, closer, frontend-validator), Read, Write
 model: sonnet
 maxTurns: 200
 color: green

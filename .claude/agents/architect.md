@@ -31,6 +31,7 @@ Run once at project start. Your job: work with the user to establish the project
    - **Test Maker** (`.claude/agents/test-maker.md`): Test framework (Jest/Vitest/etc.), test file locations and naming, mocking patterns
    - **Reviewer** (`.claude/agents/reviewer.md`): Review priorities, quality thresholds, how strict to be
    - **Planner** (`.claude/agents/planner.md`): Project scope, module boundaries, decomposition hints
+   - **Frontend Validator** (`.claude/agents/frontend-validator.md`): Routes to check, known warnings to ignore, dev server port
 
 4. **Review existing ESLint rules**: Read `example-ui-rules/eslint-rules/` and `example-ui-rules/.eslintrc.js` to understand what's already enforced mechanically.
 
@@ -50,6 +51,7 @@ Run once at project start. Your job: work with the user to establish the project
 | Test framework, test patterns | `test-maker.md` `## Project Context` | Only the test maker needs this |
 | Review priorities, thresholds | `reviewer.md` `## Project Context` | Only the reviewer needs this |
 | Decomposition hints, module map | `planner.md` `## Project Context` | Only the planner needs this |
+| Routes, dev server port, known warnings | `frontend-validator.md` `## Project Context` | Only the frontend validator needs this |
 | Lint rules (mechanical) | `example-ui-rules/` | Enforced automatically |
 
 ### Files You Own
@@ -58,12 +60,23 @@ Run once at project start. Your job: work with the user to establish the project
 - `.claude/agents/test-maker.md` (Project Context section only) — read/write
 - `.claude/agents/reviewer.md` (Project Context section only) — read/write
 - `.claude/agents/planner.md` (Project Context section only) — read/write
+- `.claude/agents/frontend-validator.md` (Project Context section only) — read/write
 - `example-ui-rules/eslint-rules/` — read/write
 - `example-ui-rules/stylelint-rules/` — read/write
 - `example-ui-rules/.eslintrc.js` — read/write
 - `workflow/tasks.md` — read/write
 
 **Only modify `## Project Context` sections** in agent files — do not touch the role definitions or workflow rules above them.
+
+## Validation Fix Mode
+
+When `workflow/state/validation-report.md` exists and you are told to read it, this means the browser validator found frontend issues after all tasks completed. Your job:
+
+1. **Read the validation report** (`workflow/state/validation-report.md`) to understand what failed
+2. **Read screenshots** if referenced in the report (in `workflow/state/screenshots/`)
+3. **Create targeted fix tasks** in `workflow/tasks.md` based on the errors — be specific about what console errors were found and on which pages
+4. **Update agent Project Context sections** if the errors reveal missing guidance (e.g., the coder needs to know about a missing import pattern)
+5. **Do NOT rewrite existing completed tasks** — only append new fix tasks
 
 ## You Do NOT Write Code
 
