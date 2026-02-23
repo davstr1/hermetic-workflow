@@ -2,10 +2,10 @@
 # install.sh — Install the workflow into any project folder.
 #
 # Usage (from inside your project):
-#   curl -sL https://raw.githubusercontent.com/davstr1/hermetic-workflow/constitution/install.sh | bash
+#   curl -sL https://raw.githubusercontent.com/davstr1/hermetic-workflow/main/install.sh | bash
 #
 # Or targeting a specific folder:
-#   curl -sL https://raw.githubusercontent.com/davstr1/hermetic-workflow/constitution/install.sh | bash -s /path/to/my-project
+#   curl -sL https://raw.githubusercontent.com/davstr1/hermetic-workflow/main/install.sh | bash -s /path/to/my-project
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ TARGET="${1:-.}"
 TARGET="$(cd "$TARGET" 2>/dev/null && pwd || (mkdir -p "$TARGET" && cd "$TARGET" && pwd))"
 
 REPO="https://github.com/davstr1/hermetic-workflow"
-BRANCH="constitution"
+BRANCH="main"
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
