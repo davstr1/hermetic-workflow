@@ -2,6 +2,8 @@
 name: data-scout
 description: "Proposes data schemas by reading API docs and searching the web"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
+skills:
+  - commit
 model: sonnet
 maxTurns: 30
 color: cyan

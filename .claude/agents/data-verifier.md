@@ -2,6 +2,8 @@
 name: data-verifier
 description: "Hits real endpoints to validate the data contract"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
+skills:
+  - commit
 model: sonnet
 maxTurns: 30
 color: orange

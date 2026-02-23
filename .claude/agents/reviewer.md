@@ -2,6 +2,8 @@
 name: reviewer
 description: "Runs tests, checks quality, catches cheating. Commits on PASS."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
+skills:
+  - commit
 model: sonnet
 color: orange
 ---

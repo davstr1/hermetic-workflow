@@ -2,6 +2,8 @@
 name: coder
 description: "Writes tests then implementation code. Two commits: test commit, then code commit."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
+skills:
+  - commit
 model: sonnet
 maxTurns: 50
 color: blue

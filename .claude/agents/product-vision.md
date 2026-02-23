@@ -2,6 +2,8 @@
 name: product-vision
 description: "Turns a project idea into ASCII screen doodles and user flows"
 tools: Read, Write, Edit, Bash, Glob, Grep
+skills:
+  - commit
 model: opus
 maxTurns: 30
 color: red

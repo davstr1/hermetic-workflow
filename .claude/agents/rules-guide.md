@@ -2,6 +2,8 @@
 name: rules-guide
 description: "Sets up folder structure, lint rules, and coding principles"
 tools: Read, Write, Edit, Bash, Glob, Grep
+skills:
+  - commit
 model: sonnet
 maxTurns: 30
 color: red

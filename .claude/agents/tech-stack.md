@@ -2,6 +2,8 @@
 name: tech-stack
 description: "Researches and picks the tech stack with the user"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
+skills:
+  - commit
 model: sonnet
 maxTurns: 30
 color: cyan

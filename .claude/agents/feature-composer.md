@@ -2,6 +2,8 @@
 name: feature-composer
 description: "Decomposes the project into independent, self-contained blocks"
 tools: Read, Write, Edit, Bash, Glob, Grep
+skills:
+  - commit
 model: sonnet
 maxTurns: 20
 color: purple
