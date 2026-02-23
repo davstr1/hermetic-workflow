@@ -5,12 +5,10 @@ An agent workflow for [Claude Code](https://docs.anthropic.com/en/docs/claude-co
 ## Quick Start
 
 ```bash
-# Clone + install into your project
-git clone git@github.com:davstr1/hermetic-workflow.git /tmp/hw
-/tmp/hw/init.sh /path/to/my-project
+# Install (run from your project directory)
+curl -fsSL https://raw.githubusercontent.com/davstr1/hermetic-workflow/main/setup-remote.sh | bash
 
 # Run
-cd /path/to/my-project
 ./orchestrator.sh
 ```
 
@@ -48,15 +46,10 @@ Task (per block):
 
 ## Updating an Existing Project
 
-Re-run `init.sh` from the latest source:
+Same command as install — run it from your project directory:
 
 ```bash
-# Pull the latest workflow
-cd /path/to/hermetic-workflow
-git pull
-
-# Re-init your project
-./init.sh /path/to/my-project
+curl -fsSL https://raw.githubusercontent.com/davstr1/hermetic-workflow/main/setup-remote.sh | bash
 ```
 
 **Updated** (overwritten every time):
