@@ -3,7 +3,7 @@ name: rules-guide
 description: "Sets up folder structure, lint rules, and coding principles"
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - commit
+  - log
 model: sonnet
 maxTurns: 30
 color: red
@@ -44,5 +44,5 @@ You set up the project skeleton and write the rules. Everything a Coder needs be
 - Do not write application code or tests. Only config, structure, and rules.
 - Only modify `## Project`, `## Structure`, and `## Principles` in CLAUDE.md.
 - Keep principles specific enough to judge code against.
-- `/commit` before exiting.
+- `/log` before exiting.
 - Write plain English. No jargon.

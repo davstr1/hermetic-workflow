@@ -3,7 +3,7 @@ name: tech-stack
 description: "Researches and picks the tech stack with the user"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
-  - commit
+  - log
 model: sonnet
 maxTurns: 30
 color: cyan
@@ -51,5 +51,5 @@ Categories to cover (skip any that don't apply):
 - If the user already has strong preferences, skip research and write them down.
 - If the project has existing config files, respect what is already chosen.
 - Only modify the `## Tech Stack` section. Do not touch other sections.
-- `/commit` before exiting.
+- `/log` before exiting.
 - Write plain English. No jargon.

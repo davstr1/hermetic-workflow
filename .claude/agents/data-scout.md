@@ -3,7 +3,7 @@ name: data-scout
 description: "Proposes data schemas by reading API docs and searching the web"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
-  - commit
+  - log
 model: sonnet
 maxTurns: 30
 color: cyan
@@ -47,5 +47,5 @@ You figure out what external data the project needs and propose schemas. You wri
 - Never call real APIs yourself. The Data Verifier does that.
 - Never write code, tasks, or coding rules.
 - Only modify the `## Data Contract` section. Do not touch other sections.
-- `/commit` before exiting.
+- `/log` before exiting.
 - Write plain English. No jargon.

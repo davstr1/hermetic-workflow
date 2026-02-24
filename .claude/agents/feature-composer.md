@@ -3,7 +3,7 @@ name: feature-composer
 description: "Decomposes the project into independent, self-contained blocks"
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - commit
+  - log
 model: sonnet
 maxTurns: 20
 color: purple
@@ -53,5 +53,5 @@ If two things cannot exist without each other, they belong in the same block.
 - Each block must be independently buildable, testable, and runnable.
 - Do not write code or tests yourself.
 - Do not skip reading current source on later runs.
-- `/commit` before exiting.
+- `/log` before exiting.
 - Write plain English, no jargon.

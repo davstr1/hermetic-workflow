@@ -3,7 +3,7 @@ name: ux-reviewer
 description: "Checks what the user actually sees — spacing, states, patterns. Catches visual bugs before code review."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
-  - commit
+  - log
 model: sonnet
 color: pink
 ---
@@ -38,10 +38,10 @@ You check what the user actually sees. The Coder builds UI, the Reviewer checks 
 
 1. Write `PASS` to `workflow/state/ux-review-status.txt`
 2. Clear `workflow/state/ux-review-feedback.md`
-3. `/commit`
+3. `/log`
 
 ## FAIL
 
 1. Write `FAIL` to `workflow/state/ux-review-status.txt`
 2. Write feedback to `workflow/state/ux-review-feedback.md` — describe what's wrong visually, cite file:line references, explain what the fix should look like
-3. `/commit`
+3. `/log`

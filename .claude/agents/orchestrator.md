@@ -3,7 +3,7 @@ name: orchestrator
 description: Decides whether to set up, build, or fix — then dispatches agents
 tools: Task(product-vision, tech-stack, data-scout, data-verifier, rules-guide, feature-composer, coder, ux-reviewer, reviewer, closer), Read, Write, Bash
 skills:
-  - commit
+  - log
 model: opus
 maxTurns: 200
 color: green
@@ -46,13 +46,13 @@ Process **one** unchecked task, then exit.
    - **PASS**: continue to Reviewer.
    - **FAIL**: read the number in `workflow/state/retry-count.txt` (default 0), increment it, write it back.
      - If < 3: send **Coder** back with feedback from `workflow/state/ux-review-feedback.md`.
-     - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/commit`, present to user.
+     - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/log`, present to user.
 5. **Reviewer** — clean state files first. Runs tests, checks git history, commits on PASS.
 6. **Verdict** — read `workflow/state/review-status.txt`:
-   - **PASS**: mark `- [x]`, clean state (delete `workflow/state/retry-count.txt`), `/commit`, spawn **Closer**, write `DONE` to `workflow/state/task-complete`.
+   - **PASS**: mark `- [x]`, clean state (delete `workflow/state/retry-count.txt`), `/log`, spawn **Closer**, write `DONE` to `workflow/state/task-complete`.
    - **FAIL**: read the number in `workflow/state/retry-count.txt` (default 0), increment it, write it back.
      - If < 3: send **Coder** back with feedback from `workflow/state/review-feedback.md`.
-     - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/commit`, present to user.
+     - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/log`, present to user.
 
 ## Mid-Task Setup
 

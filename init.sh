@@ -96,7 +96,7 @@ copy_always "$SCRIPT_DIR/.claude/hooks/guard-files.sh"  "$TARGET/.claude/hooks/g
 copy_always "$SCRIPT_DIR/.claude/hooks/enforce-lint.sh" "$TARGET/.claude/hooks/enforce-lint.sh"
 copy_always "$SCRIPT_DIR/.claude/hooks/session-start.sh" "$TARGET/.claude/hooks/session-start.sh"
 copy_always "$SCRIPT_DIR/.claude/settings.json"         "$TARGET/.claude/settings.json"
-copy_always "$SCRIPT_DIR/.claude/commands/commit.md"    "$TARGET/.claude/commands/commit.md"
+copy_always "$SCRIPT_DIR/.claude/commands/log.md"       "$TARGET/.claude/commands/log.md"
 copy_always "$SCRIPT_DIR/orchestrator.sh"               "$TARGET/orchestrator.sh"
 
 # Agent definitions — always overwrite (these define agent behavior)
@@ -139,7 +139,7 @@ if [[ -f "$_history_dest" ]]; then
     echo "Date: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     echo ""
     echo "What: Workflow framework updated via init.sh."
-    echo "Why: New version includes project history tracking after each commit."
+    echo "Why: New version includes project history tracking after each agent action."
     echo ""
     if [[ -n "$_old_entries" ]]; then
       echo "$_old_entries"

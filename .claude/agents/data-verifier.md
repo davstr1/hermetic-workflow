@@ -3,7 +3,7 @@ name: data-verifier
 description: "Hits real endpoints to validate the data contract"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
-  - commit
+  - log
 model: sonnet
 maxTurns: 30
 color: orange
@@ -36,5 +36,5 @@ If mismatches found:
 - **Read-only probing only**: never POST, PUT, DELETE, or run DDL statements.
 - **Redact secrets**: never write API keys or passwords. Use env var names.
 - **Trust real responses over docs**: if the API differs from the contract, the response wins.
-- `/commit` if you modified CLAUDE.md.
+- `/log` before exiting.
 - Write plain English. No jargon.

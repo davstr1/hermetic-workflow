@@ -3,7 +3,7 @@ name: reviewer
 description: "Runs tests, checks quality, catches cheating. Always commits."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 skills:
-  - commit
+  - log
 model: sonnet
 color: orange
 ---
@@ -16,7 +16,7 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
 
 1. **Read `CLAUDE.md`** — project description, structure, and coding rules to check against.
 2. **Read the task description** from `workflow/tasks.md` — you need to know what was asked for.
-3. **Check git history**: find the Coder's two `/commit`s (test + code). Diff between them. If the code `/commit` weakened or deleted tests from the test `/commit` — FAIL.
+3. **Check git history**: find the Coder's two `/log`s (test + code). Diff between them. If the code `/log` weakened or deleted tests from the test `/log` — FAIL.
 4. **Read the tests**. Check for cheating:
    - Are the tests trivial? (e.g., only testing the happy path, no edge cases)
    - Do they actually verify the task requirements, or just check something easy?
@@ -39,10 +39,10 @@ You verify the Coder's work. The Coder writes both tests and code — your job i
 
 1. Write `PASS` to `workflow/state/review-status.txt`
 2. Clear `workflow/state/review-feedback.md`
-3. `/commit`
+3. `/log`
 
 ## FAIL
 
 1. Write `FAIL` to `workflow/state/review-status.txt`
 2. Write feedback to `workflow/state/review-feedback.md` — cite file:line, say what to fix
-3. `/commit` — `/commit`s the state files and history entry so nothing is left floating for the next agent
+3. `/log` — `/log`s the state files and history entry so nothing is left floating for the next agent

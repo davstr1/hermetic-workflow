@@ -3,7 +3,7 @@ name: product-vision
 description: "Turns a project idea into ASCII screen doodles and user flows"
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - commit
+  - log
 model: opus
 maxTurns: 30
 color: red
@@ -54,5 +54,5 @@ You turn a vague project idea into concrete screen layouts and user flows. You w
 - Do not write tasks. That comes later.
 - The user must confirm the doodle before you write to CLAUDE.md.
 - Only modify the `## Screens` section. Do not touch other sections.
-- `/commit` before exiting.
+- `/log` before exiting.
 - Write plain English. No jargon.
