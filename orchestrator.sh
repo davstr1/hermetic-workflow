@@ -310,7 +310,15 @@ while true; do
   fi
 
   if [[ "$has_tasks" -gt 0 && "$unchecked" -eq 0 ]]; then
-    break  # All tasks done
+    echo ""
+    ok "All ${has_tasks} tasks complete."
+    read -rp $'\033[0;34m[orchestrator]\033[0m Add more work? (y/n) ' answer
+    if [[ "$answer" != "y" ]]; then
+      break
+    fi
+    log "Launching orchestrator for new tasks..."
+    run_with_sentinel "Read CLAUDE.md and workflow/tasks.md. All existing tasks are done. Ask the user what new work they want, then act."
+    continue
   fi
 
   if [[ "$unchecked" -gt 0 ]]; then
