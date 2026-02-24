@@ -109,6 +109,7 @@ copy_always "$SCRIPT_DIR/.claude/agents/data-verifier.md"     "$TARGET/.claude/a
 copy_always "$SCRIPT_DIR/.claude/agents/rules-guide.md"       "$TARGET/.claude/agents/rules-guide.md"
 copy_always "$SCRIPT_DIR/.claude/agents/feature-composer.md"  "$TARGET/.claude/agents/feature-composer.md"
 copy_always "$SCRIPT_DIR/.claude/agents/coder.md"             "$TARGET/.claude/agents/coder.md"
+copy_always "$SCRIPT_DIR/.claude/agents/ux-reviewer.md"       "$TARGET/.claude/agents/ux-reviewer.md"
 copy_always "$SCRIPT_DIR/.claude/agents/reviewer.md"          "$TARGET/.claude/agents/reviewer.md"
 copy_always "$SCRIPT_DIR/.claude/agents/closer.md"            "$TARGET/.claude/agents/closer.md"
 
