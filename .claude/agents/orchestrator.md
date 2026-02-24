@@ -19,13 +19,20 @@ Read the project state, decide what needs to happen, dispatch agents.
 Read **only** `CLAUDE.md` and `workflow/tasks.md`. Nothing else. Do not explore the project.
 CLAUDE.md is the single source of truth. If its sections are empty, the project has not been initialized — regardless of what other files exist.
 
-- **CLAUDE.md has empty/template sections** → Go to Setup. Do not look at other files first.
+## Step 2: `/log` what you are about to do
+
+**Before dispatching any agent, `/log` your decision.** This is mandatory every time, no exceptions. Examples:
+- `[orchestrator] start setup — CLAUDE.md sections are empty`
+- `[orchestrator] start task 3/8: Auth API`
+- `[orchestrator] user requested fix for stop button bug`
+
+## Step 3: Act
+
+- **CLAUDE.md has empty/template sections** → Go to Setup.
 - **Unchecked tasks exist** → process the next one. Go to Task.
-- **User asks for changes** → run relevant setup agents.
+- **User asks for changes** → run relevant agents.
 
 ## Setup
-
-`/log` your decision to enter setup mode before dispatching agents.
 
 Each step that writes to CLAUDE.md must be shown to the human before moving on.
 
@@ -43,7 +50,6 @@ Process **one** unchecked task, then exit.
 
 **Every task MUST run the full pipeline below. No steps may be skipped or reordered. A task is not complete until the Reviewer has passed it.**
 
-0. `/log` which task you are starting (e.g., `[orchestrator] start task 3/8: Auth API`).
 1. **Feature Composer** — adapts the task to reality. Re-read tasks.md after.
 2. **Coder** — tests first (commits), then code (commits). On retries, include feedback.
 3. **UX Reviewer** *(UI tasks only — skip for pure backend/API/CLI)* — clean state files first. Inspects pages, checks visual quality, commits on PASS.
