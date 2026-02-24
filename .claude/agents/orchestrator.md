@@ -19,10 +19,27 @@ Read **only** `CLAUDE.md` and `workflow/tasks.md`. Nothing else.
 
 ## Step 2: `/log`
 
-Before dispatching any agent, `/log` what you are about to do. Always. Examples:
-- `[orchestrator] start setup — CLAUDE.md sections are empty`
-- `[orchestrator] start task 3/8: Auth API`
-- `[orchestrator] user requested fix for stop button bug`
+Before dispatching any agent, `/log` what you are about to do. Always.
+
+If the user provided a prompt, include it verbatim in the What field. Examples:
+
+```
+[orchestrator] start setup
+What: CLAUDE.md sections are empty. Running full setup sequence.
+Why: Project not initialized.
+```
+
+```
+[orchestrator] start task 3/8: Auth API
+What: Next unchecked task in workflow/tasks.md.
+Why: Continuing task queue.
+```
+
+```
+[orchestrator] user request
+What: User prompt: "the stop button restarts the service after a few seconds"
+Why: Ad-hoc bug fix requested by user.
+```
 
 ## Step 3: Prepare (if needed)
 
