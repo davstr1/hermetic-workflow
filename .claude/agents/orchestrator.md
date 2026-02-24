@@ -41,21 +41,25 @@ After setup, write `DONE` to `workflow/state/task-complete`.
 
 Process **one** unchecked task, then exit.
 
+**Every task MUST run the full pipeline below. No steps may be skipped or reordered. A task is not complete until the Reviewer has passed it.**
+
 0. `/log` which task you are starting (e.g., `[orchestrator] start task 3/8: Auth API`).
 1. **Feature Composer** — adapts the task to reality. Re-read tasks.md after.
 2. **Coder** — tests first (commits), then code (commits). On retries, include feedback.
-3. **UX Reviewer** — only if the task involves UI (skip for pure backend/API/CLI tasks). Clean state files first. Inspects pages, checks visual quality, commits on PASS.
-4. **UX Verdict** — read `workflow/state/ux-review-status.txt` (skip if UX Reviewer was skipped):
+3. **UX Reviewer** *(UI tasks only — skip for pure backend/API/CLI)* — clean state files first. Inspects pages, checks visual quality, commits on PASS.
+4. **UX Verdict** *(skip if UX Reviewer was skipped)* — read `workflow/state/ux-review-status.txt`:
    - **PASS**: continue to Reviewer.
    - **FAIL**: read the number in `workflow/state/retry-count.txt` (default 0), increment it, write it back.
      - If < 3: send **Coder** back with feedback from `workflow/state/ux-review-feedback.md`.
      - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/log`, present to user.
-5. **Reviewer** — clean state files first. Runs tests, checks git history, commits on PASS.
+5. **Reviewer** — MANDATORY, never skip. Clean state files first. Runs tests, checks git history, commits on PASS.
 6. **Verdict** — read `workflow/state/review-status.txt`:
    - **PASS**: mark `- [x]`, clean state (delete `workflow/state/retry-count.txt`), `/log`, spawn **Closer**, write `DONE` to `workflow/state/task-complete`.
    - **FAIL**: read the number in `workflow/state/retry-count.txt` (default 0), increment it, write it back.
      - If < 3: send **Coder** back with feedback from `workflow/state/review-feedback.md`.
      - If >= 3: write diagnosis to `workflow/state/escalation.md`, `/log`, present to user.
+
+**Do not mark a task `[x]` without a Reviewer PASS. Do not write DONE without a Reviewer PASS.**
 
 ## Mid-Task Setup
 
