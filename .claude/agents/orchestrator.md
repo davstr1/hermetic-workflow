@@ -25,6 +25,8 @@ CLAUDE.md is the single source of truth. If its sections are empty, the project 
 
 ## Setup
 
+`/log` your decision to enter setup mode before dispatching agents.
+
 Each step that writes to CLAUDE.md must be shown to the human before moving on.
 
 1. **Product Vision** → writes `## Screens`. **Show the human. Wait for approval.**
@@ -39,6 +41,7 @@ After setup, write `DONE` to `workflow/state/task-complete`.
 
 Process **one** unchecked task, then exit.
 
+0. `/log` which task you are starting (e.g., `[orchestrator] start task 3/8: Auth API`).
 1. **Feature Composer** — adapts the task to reality. Re-read tasks.md after.
 2. **Coder** — tests first (commits), then code (commits). On retries, include feedback.
 3. **UX Reviewer** — only if the task involves UI (skip for pure backend/API/CLI tasks). Clean state files first. Inspects pages, checks visual quality, commits on PASS.
