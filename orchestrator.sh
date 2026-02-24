@@ -13,6 +13,7 @@
 #   ./orchestrator.sh --dangerously-skip-permissions  # Skip permission prompts
 #   ./orchestrator.sh --example                       # List available examples
 #   ./orchestrator.sh --example string-utils          # Run a specific example in /tmp
+#   ./orchestrator.sh --build-example my-app            # Run setup, save artifacts as reusable example
 #   ./orchestrator.sh --reset                         # Clean state from interrupted run, then start
 
 set -euo pipefail
@@ -35,6 +36,7 @@ warn() { echo -e "${YELLOW}[orchestrator]${NC} $*"; }
 skip_permissions=""
 run_example=""
 run_reset=""
+build_example=""
 args=("$@")
 for ((i=0; i<${#args[@]}; i++)); do
   case "${args[$i]}" in
@@ -46,6 +48,16 @@ for ((i=0; i<${#args[@]}; i++)); do
         ((i++))
       else
         run_example="1"
+      fi
+      ;;
+    --build-example)
+      if [[ $((i+1)) -lt ${#args[@]} && "${args[$((i+1))]}" != --* ]]; then
+        build_example="${args[$((i+1))]}"
+        ((i++))
+      else
+        echo -e "${RED}[orchestrator]${NC} --build-example requires a name argument" >&2
+        echo "Usage: ./orchestrator.sh --build-example <name>" >&2
+        exit 1
       fi
       ;;
     --reset) run_reset="1" ;;
@@ -88,6 +100,93 @@ run_with_sentinel() {
   echo ""
 }
 
+# ── Build-example mode: run setup, save artifacts as reusable example ──
+if [[ -n "$build_example" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  EXAMPLES_DIR="$SCRIPT_DIR/examples"
+
+  # Validate name doesn't already exist
+  if [[ -d "$EXAMPLES_DIR/$build_example" ]]; then
+    echo -e "${RED}[orchestrator]${NC} Example '$build_example' already exists in examples/" >&2
+    echo "Choose a different name or remove examples/$build_example/ first." >&2
+    exit 1
+  fi
+
+  TEMP_DIR="/tmp/hw-build-example-$$"
+  log "Build-example mode: setting up temp project in $TEMP_DIR"
+
+  # Create temp project with blank templates
+  mkdir -p "$TEMP_DIR/workflow"
+  cp "$SCRIPT_DIR/CLAUDE.md"         "$TEMP_DIR/CLAUDE.md"
+  cp "$SCRIPT_DIR/workflow/tasks.md" "$TEMP_DIR/workflow/tasks.md"
+
+  # Init git repo with initial commit
+  git -C "$TEMP_DIR" init -q
+  git -C "$TEMP_DIR" add -A
+  git -C "$TEMP_DIR" commit -q -m "Initial blank project"
+
+  # Run init.sh to install workflow infrastructure
+  log "Running init.sh..."
+  "$SCRIPT_DIR/init.sh" "$TEMP_DIR"
+
+  # Point PROJECT_DIR at temp dir so run_with_sentinel operates there
+  PROJECT_DIR="$TEMP_DIR"
+  STATE_DIR="$TEMP_DIR/workflow/state"
+  mkdir -p "$STATE_DIR"
+  TOTAL_ACTIVE_TIME=0
+
+  log "Launching orchestrator for interactive setup..."
+  echo ""
+  run_with_sentinel "Read CLAUDE.md and workflow/tasks.md. Decide what the project needs and act."
+
+  # Save artifacts into examples/<name>/
+  log "Saving artifacts to examples/$build_example/..."
+  mkdir -p "$EXAMPLES_DIR/$build_example"
+
+  # CLAUDE.md — always present
+  cp "$TEMP_DIR/CLAUDE.md" "$EXAMPLES_DIR/$build_example/CLAUDE.md"
+
+  # workflow/tasks.md
+  if [[ -f "$TEMP_DIR/workflow/tasks.md" ]]; then
+    mkdir -p "$EXAMPLES_DIR/$build_example/workflow"
+    cp "$TEMP_DIR/workflow/tasks.md" "$EXAMPLES_DIR/$build_example/workflow/tasks.md"
+  fi
+
+  # package.json — if created
+  if [[ -f "$TEMP_DIR/package.json" ]]; then
+    cp "$TEMP_DIR/package.json" "$EXAMPLES_DIR/$build_example/package.json"
+  fi
+
+  # tsconfig.json — if created
+  if [[ -f "$TEMP_DIR/tsconfig.json" ]]; then
+    cp "$TEMP_DIR/tsconfig.json" "$EXAMPLES_DIR/$build_example/tsconfig.json"
+  fi
+
+  # src/ — if scaffolded
+  if [[ -d "$TEMP_DIR/src" ]]; then
+    cp -r "$TEMP_DIR/src/" "$EXAMPLES_DIR/$build_example/src/"
+  fi
+
+  # Generate no-op agent-context.sh for compatibility with --example mode
+  cat > "$EXAMPLES_DIR/$build_example/agent-context.sh" << 'AGENT_CTX'
+#!/usr/bin/env bash
+# agent-context.sh — No-op. All context is in CLAUDE.md now.
+#
+# Kept for backwards compatibility with orchestrator.sh example mode,
+# which calls this script after init.sh.
+
+echo "Agent context: everything is in CLAUDE.md. Nothing to patch."
+AGENT_CTX
+  chmod +x "$EXAMPLES_DIR/$build_example/agent-context.sh"
+
+  # Clean up temp dir
+  rm -rf "$TEMP_DIR"
+
+  ok "Example '$build_example' saved to examples/$build_example/"
+  ok "Run it with: ./orchestrator.sh --example $build_example"
+  exit 0
+fi
+
 # ── Example mode: pre-baked smoke-test project ──
 if [[ -n "$run_example" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -125,18 +224,12 @@ if [[ -n "$run_example" ]]; then
 
   mkdir -p "$TEMP_DIR/workflow"
   cp "$EXAMPLE_DIR/CLAUDE.md"         "$TEMP_DIR/CLAUDE.md"
-  cp "$EXAMPLE_DIR/package.json"      "$TEMP_DIR/package.json"
   cp -r "$EXAMPLE_DIR/workflow/"      "$TEMP_DIR/workflow/"
 
-  # Copy src/ if it exists (e.g., bugfix example with pre-existing code)
-  if [[ -d "$EXAMPLE_DIR/src" ]]; then
-    cp -r "$EXAMPLE_DIR/src/" "$TEMP_DIR/src/"
-  fi
-
-  # Copy tsconfig.json if it exists (e.g., TypeScript projects)
-  if [[ -f "$EXAMPLE_DIR/tsconfig.json" ]]; then
-    cp "$EXAMPLE_DIR/tsconfig.json" "$TEMP_DIR/tsconfig.json"
-  fi
+  # Copy optional project files if they exist
+  [[ -f "$EXAMPLE_DIR/package.json" ]]  && cp "$EXAMPLE_DIR/package.json"  "$TEMP_DIR/package.json"
+  [[ -f "$EXAMPLE_DIR/tsconfig.json" ]] && cp "$EXAMPLE_DIR/tsconfig.json" "$TEMP_DIR/tsconfig.json"
+  [[ -d "$EXAMPLE_DIR/src" ]]           && cp -r "$EXAMPLE_DIR/src/"       "$TEMP_DIR/src/"
 
   git -C "$TEMP_DIR" init -q
   git -C "$TEMP_DIR" add -A
@@ -148,9 +241,11 @@ if [[ -n "$run_example" ]]; then
   log "Patching agent context..."
   "$EXAMPLE_DIR/agent-context.sh" "$TEMP_DIR"
 
-  log "Installing project dependencies..."
-  (cd "$TEMP_DIR" && npm install --silent 2>&1)
-  ok "Dependencies installed."
+  if [[ -f "$TEMP_DIR/package.json" ]]; then
+    log "Installing project dependencies..."
+    (cd "$TEMP_DIR" && npm install --silent 2>&1)
+    ok "Dependencies installed."
+  fi
 
   git -C "$TEMP_DIR" add -A
   git -C "$TEMP_DIR" commit -q -m "chore: apply example agent context"
