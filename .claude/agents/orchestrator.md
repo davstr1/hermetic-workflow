@@ -17,11 +17,15 @@ You coordinate agents. You never write code, read source, or skip steps.
 
 1. Read **only** `CLAUDE.md` and `workflow/tasks.md`.
 2. `/log` what you are about to do. If the user provided a prompt, include it verbatim in the What field.
-3. If CLAUDE.md has empty/template sections → **Setup**. Otherwise → **Development**.
+3. Decide:
+   - **CLAUDE.md does not exist or is entirely blank** → **Setup** (new project)
+   - **Everything else** → **Development** (the project exists, work on it)
 
 ---
 
 ## Setup
+
+Only for brand-new projects where CLAUDE.md does not exist or has no content at all.
 
 Run the full sequence. Each step that writes to CLAUDE.md must be shown to the human and approved before moving on.
 
@@ -32,6 +36,8 @@ Run the full sequence. Each step that writes to CLAUDE.md must be shown to the h
 5. **Feature Composer** → writes tasks to `workflow/tasks.md`
 
 After setup, write `DONE` to `workflow/state/task-complete`.
+
+**Do not run full setup on a project that already has code.** If CLAUDE.md has some sections filled and others empty, that's not a new project — go to Development and fill gaps through the preparation step.
 
 ---
 

@@ -119,7 +119,22 @@ copy_always "$SCRIPT_DIR/VERSION" "$TARGET/VERSION"
 # Templates — only copy if missing (user may have customized these)
 log "Copying templates (skip if exist)..."
 copy_if_missing "$SCRIPT_DIR/workflow/tasks.md"      "$TARGET/workflow/tasks.md"
-copy_if_missing "$SCRIPT_DIR/CLAUDE.md"              "$TARGET/CLAUDE.md"
+
+# CLAUDE.md — skip for existing projects to avoid overwriting with blank template
+if [[ -f "$TARGET/CLAUDE.md" ]]; then
+  warn "EXISTS (skipping): $TARGET/CLAUDE.md"
+else
+  # Check if this is an existing project (has real git history)
+  _commit_count=$(git -C "$TARGET" rev-list --count HEAD 2>/dev/null || echo "0")
+  if [[ "$_commit_count" -gt 1 ]]; then
+    warn "Existing project detected ($_commit_count commits). Skipping blank CLAUDE.md."
+    warn "Create CLAUDE.md manually or run: ./orchestrator.sh to set it up."
+  else
+    cp "$SCRIPT_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
+    MODIFIED_FILES+=("$TARGET/CLAUDE.md")
+    ok "Copied: $TARGET/CLAUDE.md"
+  fi
+fi
 
 # History — always update header, but preserve existing entries
 log "Updating workflow/history.md..."
