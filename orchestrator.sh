@@ -303,8 +303,11 @@ TOTAL_ACTIVE_TIME=0
 
 while true; do
   # Check if there's anything left to do
-  has_tasks=$(grep -c '^\- \[' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
-  unchecked=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" 2>/dev/null || echo "0")
+  has_tasks=0 unchecked=0
+  if [[ -f "$PROJECT_DIR/workflow/tasks.md" ]]; then
+    has_tasks=$(grep -c '^\- \[' "$PROJECT_DIR/workflow/tasks.md" || true)
+    unchecked=$(grep -c '^\- \[ \]' "$PROJECT_DIR/workflow/tasks.md" || true)
+  fi
 
   if [[ "$has_tasks" -gt 0 && "$unchecked" -eq 0 ]]; then
     break  # All tasks done
